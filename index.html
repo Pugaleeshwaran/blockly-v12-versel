@@ -3630,9 +3630,7 @@
               }
             },
             {
-              kind: 'block', type: 'controls_if', inputs: {
-                IF0: { shadow: { type: 'logic_boolean', fields: { BOOL: 'TRUE' } } }
-              }
+              kind: 'block', type: 'controls_if', fields: { BOOL: 'TRUE' }
             },
           ]
         },
@@ -4087,7 +4085,7 @@
 
     <sep></sep>
 
-        <category name="default block" colour="#9ACD32">
+    <category name="default block" colour="#9ACD32">
       <block type="math_number">
         <field name="NUM">0</field>
       </block>
@@ -7226,7 +7224,7 @@
           // An actuator line is: optional indent + "await async_xxx(...)" with no "=" assignment before the await
           var actuatorPat = /^\s*await\s+async_\w+\s*\(/;
           var assignPat = /^\s*\w+\s*=\s*/;
-          var allActuators = ls.every(function(l) {
+          var allActuators = ls.every(function (l) {
             return actuatorPat.test(l) && !assignPat.test(l);
           });
           if (!allActuators) return stmtCode; // mixed content, keep as-is
@@ -9391,7 +9389,8 @@
                 return;
               }
               container.classList.add('hidden');
-            }, 100);          }
+            }, 100);
+          }
         });
 
         // ── Input handler — force flyout redraw on every keystroke ────────
