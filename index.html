@@ -7249,6 +7249,49 @@
         }
         return 'if ' + cond + ':\n' + makeGather(doS) + 'else:\n' + makeGather(elseS) + '\n';
       };
+
+      // Override default controls_if to use asyncio.gather() in all branches
+      reg['controls_if'] = function (b) {
+        function makeGather(stmtCode) {
+          var ls = stmtCode.split('\n')
+            .map(function (l) { return l.trimEnd(); })
+            .filter(function (l) { return l.trim() && !l.trim().startsWith('#'); });
+          if (ls.length <= 1) return stmtCode;
+          var ind = (ls[0].match(/^(\s*)/) || ['', ''])[1];
+          var actuatorPat = /^\s*await\s+async_\w+\s*\(/;
+          var assignPat = /^\s*\w+\s*=\s*/;
+          var allActuators = ls.every(function (l) {
+            return actuatorPat.test(l) && !assignPat.test(l);
+          });
+          if (!allActuators) return stmtCode;
+          var coros = ls.map(function (l) { return l.trim().replace(/^await\s+/, ''); });
+          return ind + 'await asyncio.gather(\n'
+            + coros.map(function (c) { return ind + '    ' + c + ','; }).join('\n')
+            + '\n' + ind + ')\n';
+        }
+
+        var n = 0; // count elseif clauses (inputs are named IF1, IF2, ...)
+        while (b.getInput('IF' + (n + 1))) n++;
+
+        var cond0 = py.valueToCode(b, 'IF0', py.ORDER_NONE) || 'False';
+        var do0 = py.statementToCode(b, 'DO0') || '    pass\n';
+        var code = 'if ' + cond0 + ':\n' + makeGather(do0);
+
+        for (var i = 1; i <= n; i++) {
+          var condI = py.valueToCode(b, 'IF' + i, py.ORDER_NONE) || 'False';
+          var doI = py.statementToCode(b, 'DO' + i) || '    pass\n';
+          code += 'elif ' + condI + ':\n' + makeGather(doI);
+        }
+
+        var hasElse = b.getInput('ELSE');
+        if (hasElse) {
+          var elseS = py.statementToCode(b, 'ELSE') || '    pass\n';
+          code += 'else:\n' + makeGather(elseS);
+        }
+
+        return code + '\n';
+      };
+
       reg['do_led_param'] = b => { const pins = (b.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean); const v1 = b.getFieldValue('VAL') || 0; const v2 = b.getFieldValue('VAL2') || 0; if (!pins.length) return "# do_led_param: no pins\n"; return pins.map(p => `led_blink('${p}',${v1},${v2})\n`).join(''); };
       reg['logical_comparison'] = b => { const v1 = py.valueToCode(b, 'VALUE1', py.ORDER_NONE); const op = b.getFieldValue('OPERATOR'); const v2 = py.valueToCode(b, 'VALUE2', py.ORDER_NONE); return [`${v1} ${op} ${v2}`, py.ORDER_RELATIONAL]; };
       reg['red_led'] = b => { const pins = (b.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean); const v1 = b.getFieldValue('VAL1'); const v2 = b.getFieldValue('VAL2'); if (!pins.length) return "# red_blink: no pins\n"; return pins.map(p => `await async_red_blink("${p}",${v1},${v2})\n`).join(''); };
