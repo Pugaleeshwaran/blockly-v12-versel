@@ -7253,21 +7253,75 @@
       // Override default controls_if to use asyncio.gather() in all branches
       reg['controls_if'] = function (b) {
         function makeGather(stmtCode) {
-          var ls = stmtCode.split('\n')
-            .map(function (l) { return l.trimEnd(); })
-            .filter(function (l) { return l.trim() && !l.trim().startsWith('#'); });
-          if (ls.length <= 1) return stmtCode;
-          var ind = (ls[0].match(/^(\s*)/) || ['', ''])[1];
+          if (!stmtCode || !stmtCode.trim()) return stmtCode;
+          var lines = stmtCode.split('\n');
+          // Find base indentation from first non-empty line
+          var baseInd = '';
+          for (var k = 0; k < lines.length; k++) {
+            if (lines[k].trim()) { baseInd = (lines[k].match(/^(\s*)/) || ['', ''])[1]; break; }
+          }
+          var baseLen = baseInd.length;
           var actuatorPat = /^\s*await\s+async_\w+\s*\(/;
           var assignPat = /^\s*\w+\s*=\s*/;
-          var allActuators = ls.every(function (l) {
-            return actuatorPat.test(l) && !assignPat.test(l);
-          });
-          if (!allActuators) return stmtCode;
-          var coros = ls.map(function (l) { return l.trim().replace(/^await\s+/, ''); });
-          return ind + 'await asyncio.gather(\n'
-            + coros.map(function (c) { return ind + '    ' + c + ','; }).join('\n')
-            + '\n' + ind + ')\n';
+          // Build top-level segments
+          var segments = [];
+          var i = 0;
+          while (i < lines.length) {
+            var line = lines[i];
+            if (!line.trim()) { i++; continue; }
+            var lineLen = (line.match(/^(\s*)/) || ['', ''])[1].length;
+            if (lineLen !== baseLen) { i++; continue; }
+            // Peek at next non-empty line to detect multi-line block
+            var peek = i + 1;
+            while (peek < lines.length && !lines[peek].trim()) peek++;
+            var nextDeeper = peek < lines.length &&
+              (lines[peek].match(/^(\s*)/) || ['', ''])[1].length > baseLen;
+            if (nextDeeper) {
+              // Multi-line block — collect until back to base indent
+              var blockParts = [line];
+              i++;
+              while (i < lines.length) {
+                var bl = lines[i];
+                if (!bl.trim()) { blockParts.push(bl); i++; continue; }
+                if ((bl.match(/^(\s*)/) || ['', ''])[1].length > baseLen) {
+                  blockParts.push(bl); i++;
+                } else { break; }
+              }
+              segments.push({ type: 'block', code: blockParts.join('\n') });
+            } else {
+              // Single top-level line
+              var isAct = actuatorPat.test(line) && !assignPat.test(line);
+              segments.push({
+                type: isAct ? 'actuator' : 'other',
+                code: line,
+                coro: isAct ? line.trim().replace(/^await\s+/, '') : null
+              });
+              i++;
+            }
+          }
+          if (!segments.length) return stmtCode;
+          // Merge consecutive actuators (>=2) into gather; singles stay as-is
+          var result = '';
+          var j = 0;
+          while (j < segments.length) {
+            if (segments[j].type === 'actuator') {
+              var grp = [segments[j]];
+              while (j + 1 < segments.length && segments[j + 1].type === 'actuator') {
+                j++; grp.push(segments[j]);
+              }
+              if (grp.length >= 2) {
+                result += baseInd + 'await asyncio.gather(\n'
+                  + grp.map(function (s) { return baseInd + '    ' + s.coro + ','; }).join('\n')
+                  + '\n' + baseInd + ')\n';
+              } else {
+                result += grp[0].code.trimEnd() + '\n';
+              }
+            } else {
+              result += segments[j].code.trimEnd() + '\n';
+            }
+            j++;
+          }
+          return result;
         }
 
         var n = 0; // count elseif clauses (inputs are named IF1, IF2, ...)
