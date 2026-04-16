@@ -3733,6 +3733,8 @@
           contents: [
             { kind: 'block', type: 'ai_block' },
             { kind: 'block', type: 'ai_output' },
+            { kind: 'block', type: 'object_de' },
+            { kind: 'block', type: 'object_out' },
           ]
         }
       ]
@@ -7059,6 +7061,61 @@
           output: "Boolean",
           extensions: ["servo_color"]
         },
+        {
+          type: "object_de",
+          message0: "Object Detection %1",
+          args0: [
+            {
+              type: "field_dropdown",
+              name: "STATE", options:
+                [["Person", "person"],
+                ["Bicycle", "bicycle"],
+                ["Car", "car"],
+                ["Motorcycle", "motorcycle"],
+                ["Airplane", "airplane"],
+                ["Bus", "bus"],
+                ["Train", "train"],
+                ["Truck", "truck"],
+                ["Boat", "boat"],
+                ["Traffic light", "traffic_light"],
+                ["Sports Ball", "sports_ball"],
+                ["Cup", "cup"],
+                ["Toothbrush", "toothbrush"],
+                ["Book", "book"],
+                ["Keyboard", "keyboard"]]
+            }],
+          colour: "#FF69B4",
+          previousStatement: null,
+          nextStatement: null,
+          extensions: ["servo_color"]
+        },
+        {
+          type: "object_out",
+          message0: "Object Detection %1",
+          args0: [
+            {
+              type: "field_dropdown",
+              name: "STATE", options:
+                [["Person", "person"],
+                ["Bicycle", "bicycle"],
+                ["Car", "car"],
+                ["Motorcycle", "motorcycle"],
+                ["Airplane", "airplane"],
+                ["Bus", "bus"],
+                ["Train", "train"],
+                ["Truck", "truck"],
+                ["Boat", "boat"],
+                ["Traffic light", "traffic_light"],
+                ["Sports Ball", "sports_ball"],
+                ["Cup", "cup"],
+                ["Toothbrush", "toothbrush"],
+                ["Book", "book"],
+                ["Keyboard", "keyboard"]]
+            }],
+          colour: "#FF69B4",
+          output: "Boolean",
+          extensions: ["servo_color"]
+        },
       ]);
 
       // Extensions
@@ -7576,6 +7633,14 @@
         return [`await async_ai_output("${State}")`, py.ORDER_FUNCTION_CALL];
       };
 
+      reg['object_de'] = b => {
+        const State = b.getFieldValue('STATE') || 0;
+        return `await async_object_detection("${State}")\n`;
+      };
+      reg['object_out'] = b => {
+        const State = b.getFieldValue('STATE') || 0;
+        return [`await async_object_output("${State}")`, py.ORDER_FUNCTION_CALL];
+      };
     }
 
 
