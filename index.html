@@ -148,6 +148,11 @@
       background: #a5d8ff;
     }
 
+    .setting {
+      background-color: #1EAAFF;
+      color: white;
+    }
+
     .rail {
       background: var(--panel);
       border-radius: 28px;
@@ -3257,6 +3262,213 @@
       padding: 20px 14px;
       text-align: center;
     }
+
+    .setting-slide {
+      padding: 0 10px;
+      position: absolute;
+      color: black;
+      z-index: 1000;
+      background-color: white;
+      height: 100%;
+      width: 30%;
+      right: -40%;
+      animation: 1s ease;
+      transition: all 1s;
+    }
+
+    .setting-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 20px;
+      border-bottom: solid 1px gainsboro;
+      margin-bottom: 10px;
+    }
+
+    .setting-head i {
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .setting-body {
+      border: solid #d9d9d9 1px;
+      border-radius: 5px;
+    }
+
+    .setting-body-2 {
+      border: solid #d9d9d9 1px;
+      border-radius: 5px;
+      margin-top: 20px;
+    }
+
+    .setting-element {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: solid 1px #d9d9d9;
+      padding: 10px 20px;
+
+    }
+
+    .checkbox-wrapper-34 {
+      --blue: #0D7EFF;
+      --g08: #E1E5EB;
+      --g04: #848ea1;
+    }
+
+    .checkbox-wrapper-34 .tgl {
+      display: none;
+    }
+
+    .checkbox-wrapper-34 .tgl,
+    .checkbox-wrapper-34 .tgl:after,
+    .checkbox-wrapper-34 .tgl:before,
+    .checkbox-wrapper-34 .tgl *,
+    .checkbox-wrapper-34 .tgl *:after,
+    .checkbox-wrapper-34 .tgl *:before,
+    .checkbox-wrapper-34 .tgl+.tgl-btn {
+      box-sizing: border-box;
+    }
+
+    .checkbox-wrapper-34 .tgl::selection,
+    .checkbox-wrapper-34 .tgl:after::selection,
+    .checkbox-wrapper-34 .tgl:before::selection,
+    .checkbox-wrapper-34 .tgl *::selection,
+    .checkbox-wrapper-34 .tgl *:after::selection,
+    .checkbox-wrapper-34 .tgl *:before::selection,
+    .checkbox-wrapper-34 .tgl+.tgl-btn::selection {
+      background: none;
+    }
+
+    .checkbox-wrapper-34 .tgl+.tgl-btn {
+      outline: 0;
+      display: block;
+      width: 57px;
+      height: 27px;
+      position: relative;
+      cursor: pointer;
+      user-select: none;
+      font-size: 12px;
+      font-weight: 400;
+      color: #fff;
+    }
+
+    .checkbox-wrapper-34 .tgl+.tgl-btn:after,
+    .checkbox-wrapper-34 .tgl+.tgl-btn:before {
+      position: relative;
+      display: block;
+      content: "";
+      width: 44%;
+      height: 100%;
+    }
+
+    .checkbox-wrapper-34 .tgl+.tgl-btn:after {
+      left: 0;
+    }
+
+    .checkbox-wrapper-34 .tgl+.tgl-btn:before {
+      display: inline;
+      position: absolute;
+      top: 7px;
+    }
+
+    .checkbox-wrapper-34 .tgl:checked+.tgl-btn:after {
+      left: 56.5%;
+    }
+
+    .checkbox-wrapper-34 .tgl-ios+.tgl-btn {
+      background: var(--g08);
+      border-radius: 20rem;
+      padding: 2px;
+      transition: all 0.4s ease;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+    }
+
+    .checkbox-wrapper-34 .tgl-ios+.tgl-btn:after {
+      border-radius: 2em;
+      background: #fff;
+      transition: left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), padding 0.3s ease, margin 0.3s ease;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+    }
+
+    .checkbox-wrapper-34 .tgl-ios+.tgl-btn:before {
+      content: "No";
+      left: 28px;
+      color: var(--g04);
+      transition: left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .checkbox-wrapper-34 .tgl-ios+.tgl-btn:active {
+      box-shadow: inset 0 0 0 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .checkbox-wrapper-34 .tgl-ios+.tgl-btn:active:after {
+      padding-right: 0.4em;
+    }
+
+    .checkbox-wrapper-34 .tgl-ios:checked+.tgl-btn {
+      background: var(--blue);
+    }
+
+    .checkbox-wrapper-34 .tgl-ios:checked+.tgl-btn:active {
+      box-shadow: inset 0 0 0 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .checkbox-wrapper-34 .tgl-ios:checked+.tgl-btn:active:after {
+      margin-left: -0.4em;
+    }
+
+    .checkbox-wrapper-34 .tgl-ios:checked+.tgl-btn:before {
+      content: "Yes";
+      left: 4px;
+      color: #fff;
+    }
+
+    /* Dark Mode */
+    body.dark-mode {
+      --mint: #0f172a;
+      --panel: #1e293b;
+      --grid: #334155;
+      background: var(--mint);
+    }
+
+    body.dark-mode * {
+      color: #f8fafc;
+    }
+
+    body.dark-mode .setting-slide {
+      background: var(--panel);
+      border-left: 1px solid #475569;
+    }
+
+    body.dark-mode .workspace {
+      background: #0f172a;
+    }
+
+    body.dark-mode .blocklySvg {
+      background-color: #0f172a !important;
+    }
+
+    body.dark-mode .blocklySvg pattern>rect {
+      fill: #0f172a !important;
+    }
+
+    body.dark-mode .blocklyToolboxDiv {
+      background-color: #1e293b !important;
+    }
+
+    body.dark-mode .blocklyTreeLabel {
+      color: #f8fafc !important;
+    }
+
+    body.dark-mode .blocklyFlyoutBackground {
+      fill: #1e293b !important;
+    }
+
+    body.dark-mode .box,
+    body.dark-mode .code {
+      background: var(--panel);
+    }
   </style>
 </head>
 
@@ -3313,20 +3525,15 @@
 
       <div class="btns">
         <button class="btn-circle back" id="btnConnect" title="Connect Board"><i class="fa-solid fa-plug"></i></button>
-        <button class="btn-circle unlink" id="btnDisconnect" title="Disconnect"><i
-            class="fa-solid fa-xmark"></i></button>
+
         <button class="btn-circle back" id="btnBluetooth" title="Bluetooth Boot"><i
             class="fa-brands fa-bluetooth-b"></i></button>
-        <button class="btn-circle cwl" id="btnboot" title="save board"><i
-            class="fa-solid fa-cloud-arrow-up"></i></button>
-        <button class="btn-circle save" id="btnSave" title="Save"><i class="fa-solid fa-download"></i></button>
-        <button class="btn-circle fwd" id="btnLoad" title="Load"><i class="fa-brands fa-openid"></i></button>
-        <button class="btn-circle back" id="btnClear" title="Clear"><i class="fa-solid fa-broom"></i></button>
-        <button class="btn-circle undo" id="btnUndo" title="Undo"><i class="fa-solid fa-rotate-left"></i></button>
-        <button class="btn-circle redo" id="btnRedo" title="Redo"><i class="fa-solid fa-rotate-right"></i></button>
+
+
         <button class="btn-circle output" id="showCode" title="expand"><i class="fa-solid fa-code"></i></button>
         <button class="btn-circle live-mode-btn" id="btnLiveMode" title="Live Mode OFF"
           aria-label="Toggle Live Mode">&#x26A1;</button>
+        <button class="btn-circle setting" id="setting" title="setting"><i class="fa-solid fa-gear"></i></button>
       </div>
     </div>
 
@@ -3336,8 +3543,6 @@
         <i class="fa-brands fa-bluetooth-b"></i>
         <span id="bt-text">Bluetooth</span>
       </div>
-      <dotlottie-wc src="https://lottie.host/135bd0da-d0f8-402c-9487-9e514ffc5551/eKSxkw2ql4.lottie"
-        style="width: 70px;height: 30px" hover></dotlottie-wc>
       <div id="liveModeIndicator">
         <span id="livePulseDot"></span>
         <span id="liveLedDot"></span>
@@ -3386,7 +3591,82 @@
         <div id="responseDisplay">Waiting for response...</div>
       </div>
     </section>
+
+
+    <!-- //setting slide bar -->
+    <div class="setting-slide" id="slide-setting">
+      <div class="setting-head">
+        <h2>Settings</h2>
+        <i class="fa-solid fa-x" id="close"></i>
+      </div>
+
+      <div class="setting-body">
+        <div class="setting-element">
+          <p>Dark Mode</p>
+          <div class="checkbox-wrapper-34">
+            <input class='tgl tgl-ios' id='toggle-35' type='checkbox'>
+            <label class='tgl-btn' for='toggle-35'></label>
+          </div>
+
+        </div>
+        <div class="setting-element">
+          <p>Full Screen</p>
+          <div class="checkbox-wrapper-34">
+            <input class='tgl tgl-ios' id='toggle-36' type='checkbox'>
+            <label class='tgl-btn' for='toggle-36'></label>
+          </div>
+        </div>
+        <div class="setting-element">
+          <p>Stage Turbo Mode</p>
+          <div class="checkbox-wrapper-34">
+            <input class='tgl tgl-ios' id='toggle-37' type='checkbox'>
+            <label class='tgl-btn' for='toggle-37'></label>
+          </div>
+        </div>
+        <div class="setting-element">
+          <p>Hide Stage</p>
+          <div class="checkbox-wrapper-34">
+            <input class='tgl tgl-ios' id='toggle-38' type='checkbox'>
+            <label class='tgl-btn' for='toggle-38'></label>
+          </div>
+        </div>
+        <div class="setting-element">
+          <p>Workspace grid snap</p>
+          <div class="checkbox-wrapper-34">
+            <input class='tgl tgl-ios' id='toggle-39' type='checkbox'>
+            <label class='tgl-btn' for='toggle-39'></label>
+          </div>
+        </div>
+
+
+      </div>
+
+      <div class="setting-body-2">
+        <div class="setting-element">
+          <button class="btn-circle save" id="btnSave" title="Save"><i class="fa-solid fa-download"></i></button>
+
+
+          <button class="btn-circle unlink" id="btnDisconnect" title="Disconnect"><i
+              class="fa-solid fa-xmark"></i></button>
+
+        </div>
+        <div class="setting-element">
+          <button class="btn-circle cwl" id="btnboot" title="save board"><i
+              class="fa-solid fa-cloud-arrow-up"></i></button>
+          <button class="btn-circle fwd" id="btnLoad" title="Load"><i class="fa-brands fa-openid"></i></button>
+        </div>
+        <div class="setting-element">
+          <button class="btn-circle back" id="btnClear" title="Clear"><i class="fa-solid fa-broom"></i></button>
+
+          <button class="btn-circle undo" id="btnUndo" title="Undo"><i class="fa-solid fa-rotate-left"></i></button>
+          <button class="btn-circle redo" id="btnRedo" title="Redo"><i class="fa-solid fa-rotate-right"></i></button>
+        </div>
+      </div>
+
+    </div>
   </div>
+
+
 
   <!-- ═══════════════════════════════════════════════════════════════
        BLOCKLY v12 DYNAMIC TOOLBOX — JS config object
@@ -11084,6 +11364,52 @@
 
       // REDO
       document.getElementById('btnRedo').onclick = () => { workspace.undo(true); };
+
+      // -------------setting slide-------------
+      const setting = document.getElementById("setting");
+      const close = document.getElementById('close');
+      const slide = document.getElementById("slide-setting")
+
+      setting.addEventListener("click", function () {
+        slide.style.right = "0%"
+        console.log(setting)
+      })
+
+      close.addEventListener("click", function () {
+        slide.style.right = "-40%"
+      })
+
+      // ------------- Dark Mode & Full Screen Handlers -------------
+      const darkModeToggle = document.getElementById('toggle-35');
+      const fullScreenToggle = document.getElementById('toggle-36');
+
+      if (darkModeToggle) {
+        darkModeToggle.addEventListener('change', (e) => {
+          if (e.target.checked) {
+            document.body.classList.add('dark-mode');
+          } else {
+            document.body.classList.remove('dark-mode');
+          }
+        });
+      }
+
+      if (fullScreenToggle) {
+        fullScreenToggle.addEventListener('change', (e) => {
+          if (e.target.checked) {
+            document.documentElement.requestFullscreen().catch(err => console.log(err));
+          } else {
+            if (document.fullscreenElement) {
+              document.exitFullscreen().catch(err => console.log(err));
+            }
+          }
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+          fullScreenToggle.checked = !!document.fullscreenElement;
+        });
+      }
+
+
 
       // SHOW/HIDE CODE PANEL
       const showCode = document.getElementById("showCode");
