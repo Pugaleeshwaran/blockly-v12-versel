@@ -7273,7 +7273,7 @@
       };
       reg['do_dc_motor2'] = b => { const angle = b.getFieldValue('STATE') || 0; const ports = (b.getFieldValue('MOTORS') || '').split(',').map(s => s.trim()).filter(Boolean); if (!ports.length) return '# Motor: no port\n'; if (ports.length === 1) return `await async_motor("${ports[0]}","${angle}")\n`; return `await async_motor(${ports.map(p => `"${p}"`).join(',')}, "${angle}")\n`; };
       reg['do_servo'] = b => { const ports = (b.getFieldValue('SERVO_PORT') || '').split(',').map(s => s.trim()).filter(Boolean); const angle = b.getFieldValue('ANG') || 0; if (!ports.length) return "# do_servo: no port\n"; if (ports.length === 1) return `await async_servo("${ports[0]}",${angle})\n`; return `await async_servo(${ports.map(p => `"${p}"`).join(',')},${angle})\n`; };
-      reg['ctl_delay'] = b => `time.sleep(${b.getFieldValue('MS') || 0})\n`;
+      reg['ctl_delay'] = b => `await asyncio.sleep_ms(${b.getFieldValue('MS') || 0})\n`;
       reg['lp_while'] = b => { const cond = py.valueToCode(b, 'COND', py.ORDER_NONE) || 'False'; const body = py.statementToCode(b, 'DO') || '  pass\n'; return `while ${cond}:\n  await asyncio.sleep(0)\n${body}`; };
       reg['lp_break'] = () => 'break\n';
       reg['lp_start'] = () => '@@START\n';
