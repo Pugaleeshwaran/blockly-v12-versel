@@ -3275,7 +3275,7 @@
       width: min(300px, 85%);
       right: -100%;
       transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: -4px 0 24px rgba(0, 0, 0, 0.18);
+      box-shadow: -4px 0 24px rgba(0,0,0,0.18);
       overflow-y: auto;
     }
 
@@ -7859,7 +7859,7 @@
       reg['rgb_display'] = b => `displayRGBColors(${b.getFieldValue('RED')},${b.getFieldValue('ORANGE')},${b.getFieldValue('YELLOW')},${b.getFieldValue('GREEN')},${b.getFieldValue('CYAN')});\n`;
       reg['rgb_component'] = b => { const ports = (b.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean); const freq = b.getFieldValue('freq'); const d1 = b.getFieldValue('Delay1'); const d2 = b.getFieldValue('DELAY2'); if (!ports.length) return "# rgb_component: no ports\n"; return ports.map(p => `rgb("${p}",${freq},${d1},${d2})\n`).join(''); };
       reg['buzzer_component'] = b => { const ports = (b.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean); const freq = b.getFieldValue('freq'); const d1 = b.getFieldValue('Delay1'); const d2 = b.getFieldValue('DELAY2'); if (!ports.length) return "# buzzer_component: no ports\n"; return ports.map(p => `buzzer("${p}",${freq},${d1},${d2})\n`).join(''); };
-      reg['LCD_print'] = b => { const txt = py.valueToCode(b, 'TEXT', py.ORDER_NONE) || ""; return `lcd(${txt})\n`; };
+      reg['LCD_print'] = b => { const txt = py.valueToCode(b, 'TEXT', py.ORDER_NONE) || ""; return `await async_lcd(${txt})\n`; };
       reg['din_flame'] = b => { const port = b.getFieldValue('PORTS'); return [`await async_flame("${port}")`, py.ORDER_FUNCTION_CALL]; };
       reg['din_temp'] = b => { const port = b.getFieldValue('PORTS'); return [`await async_temp("${port}")`, py.ORDER_FUNCTION_CALL]; };
       reg['magnetic_sensor'] = () => [`magnetic()`, py.ORDER_ATOMIC];
