@@ -2061,12 +2061,12 @@
     /* ===== Flyout Search ===== */
     .flyout-search {
       position: absolute;
-      top: 15px;
+      top: 10px;
       left: 260px;
-      /* overridden by JS via toolbox.getWidth() */
+      /* left and width overridden by JS */
       z-index: 1200;
-      /* must be above Blockly flyout (~z-index 1000) */
-      width: 260px;
+      width: 240px;
+      box-sizing: border-box;
       background: #fff;
       border-radius: 99px;
       border: 1px solid #e2e8f0;
@@ -3658,15 +3658,15 @@
       <button class="button-86" id="hard_reset" role="button">Hard Reset</button>
     </aside>
 
-    <section class="main">
+    <section class="main" style="position:relative;">
+      <!-- Floating Search Box — outside .workspace to avoid overflow:hidden clip -->
+      <div id="flyoutSearchContainer" class="flyout-search hidden">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="flyoutSearchInput" placeholder="Search blocks..." autocomplete="off">
+        <button id="flyoutSearchClear" class="flyout-search-clear" style="display:none;"><i
+            class="fa-solid fa-xmark"></i></button>
+      </div>
       <div class="workspace">
-        <!-- Floating Search Box, initially hidden -->
-        <div id="flyoutSearchContainer" class="flyout-search hidden">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="text" id="flyoutSearchInput" placeholder="Search blocks..." autocomplete="off">
-          <button id="flyoutSearchClear" class="flyout-search-clear" style="display:none;"><i
-              class="fa-solid fa-xmark"></i></button>
-        </div>
         <div id="blocklyDiv"></div>
         <div id="liveTerminal">
           <div class="lt-header">
@@ -5946,7 +5946,7 @@
       if (!currentPortBlock) { closePortModal(); return; }
       const sel = [];
       ALL_PORT_NUMBERS.forEach(p => { const cb = document.getElementById('port' + p); if (cb && cb.checked) sel.push(String(p)); });
-      currentPortBlock.setFieldValue(sel.length ? sel.join(',') : '—', 'PORTS');
+      currentPortBlock.setFieldValue(sel.length ? sel.join(',') : '', 'PORTS');
       closePortModal();
     }
 
@@ -5965,7 +5965,7 @@
       if (!currentMotorBlock) { closeModal(); return; }
       const selected = [];
       ['E12', 'E11', 'C8', 'C9', 'B15', 'E13', 'E14', 'D15'].forEach(m => { const cb = document.getElementById('motor' + m); if (cb && cb.checked) selected.push(m); });
-      currentMotorBlock.setFieldValue(selected.length ? selected.join(',') : '—', 'MOTORS');
+      currentMotorBlock.setFieldValue(selected.length ? selected.join(',') : '', 'MOTORS');
       closeModal();
     }
 
@@ -5983,7 +5983,7 @@
       if (!currentLedBlock) { closeLedPinModal(); return; }
       const sel = [];
       LED_PIN_NAMES.forEach(pin => { const cb = document.getElementById('ledPin' + pin); if (cb && cb.checked) sel.push(pin); });
-      currentLedBlock.setFieldValue(sel.length ? sel.join(',') : '—', 'PORTS');
+      currentLedBlock.setFieldValue(sel.length ? sel.join(',') : '', 'PORTS');
       closeLedPinModal();
     }
 
@@ -6584,7 +6584,7 @@
         return;
       }
 
-      const label = currentSelectedKeyArray.length ? currentSelectedKeyArray.join(',') : '—';
+      const label = currentSelectedKeyArray.length ? currentSelectedKeyArray.join(',') : '';
       currentkeyBlock.setFieldValue(label, 'PORTS');   // 🔴 changed PINS → PORTS
 
       closekeyPinModal();
@@ -9971,8 +9971,8 @@
 
           const header = document.createElement('label');
           header.setAttribute('text', hits.length
-            ? `${hits.length} result${hits.length > 1 ? 's' : ''} for "${q}"`
-            : `No blocks found for "${q}"`
+            ? ``
+            : ``
           );
           xmlList.push(header);
 
@@ -10010,13 +10010,29 @@
           }
 
           if (isSearch) {
-            // Position the box just to the right of the toolbox panel
-            try {
-              const toolboxWidth = toolbox.getWidth ? toolbox.getWidth() : 0;
-              container.style.left = (toolboxWidth + 16) + 'px';
-            } catch (_) {
-              container.style.left = '260px'; // safe fallback
-            }
+            // Position flush inside flyout panel
+            const _positionSearch = () => {
+              try {
+                const tbW = toolbox.getWidth ? toolbox.getWidth() : 160;
+                // Try to get flyout width, fallback to 240
+                let fw = 240;
+                try {
+                  const flyout = workspace.getFlyout ? workspace.getFlyout() : null;
+                  if (flyout && flyout.getWidth) {
+                    const w = flyout.getWidth();
+                    if (w > 50) fw = w - 20; // slight inner padding
+                  }
+                } catch(_) {}
+                container.style.left = tbW + 'px';
+                container.style.width = fw + 'px';
+              } catch (_) {
+                container.style.left = '160px';
+                container.style.width = '240px';
+              }
+            };
+            _positionSearch();
+            // Re-run after flyout finishes rendering
+            setTimeout(_positionSearch, 80);
             if (window._searchHideTimeout) {
               clearTimeout(window._searchHideTimeout);
               window._searchHideTimeout = null;
