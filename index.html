@@ -1489,21 +1489,73 @@
       display: flex;
       flex-direction: column;
     }
-    #responseDisplay .rd-line { display: flex; gap: 6px; align-items: baseline; word-break: break-all; }
-    #responseDisplay .rd-badge-usb  { color: #60a5fa; font-weight: 700; flex-shrink: 0; }
-    #responseDisplay .rd-badge-ble  { color: #34d399; font-weight: 700; flex-shrink: 0; }
-    #responseDisplay .rd-badge-sys  { color: #fbbf24; font-weight: 700; flex-shrink: 0; }
-    #responseDisplay .rd-badge-wifi { color: #a78bfa; font-weight: 700; flex-shrink: 0; }
-    #responseDisplay .rd-ts  { color: #475569; font-size: 10px; flex-shrink: 0; }
-    #responseDisplay .rd-msg { color: #e2e8f0; }
-    #rd-clear-btn {
-      position: absolute; top: 4px; right: 8px;
-      background: #243049; color: #94a3b8;
-      border: none; border-radius: 6px;
-      font-size: 10px; padding: 2px 7px; cursor: pointer; z-index: 2;
+
+    #responseDisplay .rd-line {
+      display: flex;
+      gap: 6px;
+      align-items: baseline;
+      word-break: break-all;
     }
-    #rd-clear-btn:hover { background: #334155; color: #e2e8f0; }
-    .rd-wrapper { position: relative; height: 50%; display: flex; flex-direction: column; }
+
+    #responseDisplay .rd-badge-usb {
+      color: #60a5fa;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    #responseDisplay .rd-badge-ble {
+      color: #34d399;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    #responseDisplay .rd-badge-sys {
+      color: #fbbf24;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    #responseDisplay .rd-badge-wifi {
+      color: #a78bfa;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    #responseDisplay .rd-ts {
+      color: #475569;
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+
+    #responseDisplay .rd-msg {
+      color: #e2e8f0;
+    }
+
+    #rd-clear-btn {
+      position: absolute;
+      top: 4px;
+      right: 8px;
+      background: #243049;
+      color: #94a3b8;
+      border: none;
+      border-radius: 6px;
+      font-size: 10px;
+      padding: 2px 7px;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    #rd-clear-btn:hover {
+      background: #334155;
+      color: #e2e8f0;
+    }
+
+    .rd-wrapper {
+      position: relative;
+      height: 50%;
+      display: flex;
+      flex-direction: column;
+    }
 
     #pyOut {
       height: 50%;
@@ -5413,7 +5465,7 @@
         stm32Writer = stm32Port.writable.getWriter();
         listenForData();
         handleBoardMessage("USB Connected ✅", "SYS");
-              } catch (e) {
+      } catch (e) {
         console.error("Failed to open port", e);
         alert("USB Connection failed: " + e.message);
       }
@@ -5741,16 +5793,16 @@
       const ts = new Date().toLocaleTimeString('en', { hour12: false });
       const src = (source || 'SYS').toUpperCase();
       const cls = src === 'USB' ? 'rd-badge-usb'
-                : src === 'BLE' ? 'rd-badge-ble'
-                : src === 'WIFI'? 'rd-badge-wifi'
-                :                 'rd-badge-sys';
+        : src === 'BLE' ? 'rd-badge-ble'
+          : src === 'WIFI' ? 'rd-badge-wifi'
+            : 'rd-badge-sys';
 
       const row = document.createElement('div');
       row.className = 'rd-line';
       row.innerHTML =
         '<span class="rd-ts">' + ts + '</span>' +
         '<span class="' + cls + '">[' + src + ']</span>' +
-        '<span class="rd-msg">' + msg.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>';
+        '<span class="rd-msg">' + msg.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>';
 
       el.appendChild(row);
       // Keep at most 500 lines to avoid memory bloat
@@ -5818,7 +5870,7 @@
         mqttClient.publish('esp32/boot', `@@START \n${asyncCode} \n @@END`);
         mqttClient.subscribe(['esp32/fire', 'esp32/ultrasonic', 'esp32/servo', 'esp32/led', 'esp32/motor', 'esp32/message']);
         handleBoardMessage("WiFi code sent ✅", "WIFI");
-              });
+      });
       mqttClient.on('error', function (err) {
         console.error('MQTT error:', err);
         handleBoardMessage('MQTT error: ' + err.message, 'WIFI');
@@ -7931,16 +7983,16 @@
 
         // If one port is selected, return code for that port only
         if (pins.length === 1) {
-          return [`touch_sensor("${pins[0]}")`, py.ORDER_FUNCTION_CALL];
+          return [`await async_touch_sensor("${pins[0]}")`, py.ORDER_FUNCTION_CALL];
         }
 
         // If two ports are selected, use both for Trig and Echo
         if (pins.length === 2) {
-          return [`touch_sensor("${pins[0]}","${pins[1]}")`, py.ORDER_FUNCTION_CALL];
+          return [`await async_touch_sensor("${pins[0]}","${pins[1]}")`, py.ORDER_FUNCTION_CALL];
         }
 
         // If more than two ports are selected, return the first two only
-        return [`touch_sensor("${pins[0]}","${pins[1]}","${pins[2]}")`, py.ORDER_FUNCTION_CALL];
+        return [`await async_touch_sensor("${pins[0]}","${pins[1]}","${pins[2]}")`, py.ORDER_FUNCTION_CALL];
       };
       reg['sensor'] = b => { const ports = (b.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean); if (!ports.length) return "# no ports\n"; const fn = b.getFieldValue('STATE') === '1' ? 'sensor_on' : 'sensor_off'; return ports.map(p => `${fn}(${p})\n`).join(''); };
       reg['tem_sensor'] = b => { const ports = (b.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean); if (!ports.length) return "# no ports\n"; const fn = b.getFieldValue('STATE') === '1' ? 'tem_sensor_on' : 'tem_sensor_off'; return ports.map(p => `${fn}(${p})\n`).join(''); };
@@ -7964,32 +8016,32 @@
       reg['LCD_print'] = b => { const txt = py.valueToCode(b, 'TEXT', py.ORDER_NONE) || ""; return `await async_lcd(${txt})\n`; };
       reg['din_flame'] = b => { const port = b.getFieldValue('PORTS'); return [`await async_flame("${port}")`, py.ORDER_FUNCTION_CALL]; };
       reg['din_temp'] = b => { const port = b.getFieldValue('PORTS'); return [`await async_temp("${port}")`, py.ORDER_FUNCTION_CALL]; };
-      reg['magnetic_sensor'] = () => [`magnetic()`, py.ORDER_ATOMIC];
-      reg['colour_sen'] = () => [`colour()`, py.ORDER_ATOMIC];
+      reg['magnetic_sensor'] = () => [`await async_magnetic()`, py.ORDER_ATOMIC];
+      reg['colour_sen'] = () => [`await async_colour()`, py.ORDER_ATOMIC];
       reg['system_status'] = () => [`system_status.running`, py.ORDER_ATOMIC];
-      reg['accelerometer_sensor'] = () => [`accelerometer()`, py.ORDER_ATOMIC];
-      reg['rtc_sensor'] = () => [`rtc()`, py.ORDER_ATOMIC];
-      reg['LCD'] = () => [`LCD()`, py.ORDER_ATOMIC];
-      reg['pressure'] = () => [`pressure()`, py.ORDER_ATOMIC];
-      reg['compass'] = () => [`compass()`, py.ORDER_ATOMIC];
-      reg['ceprom'] = () => [`ceprom()`, py.ORDER_ATOMIC];
-      reg['gusture'] = () => [`gusture()`, py.ORDER_ATOMIC];
-      reg['ir_temp'] = () => [`ir_temp()`, py.ORDER_ATOMIC];
-      reg['motor_driver'] = () => [`motor_driver()`, py.ORDER_ATOMIC];
-      reg['nfc_reader'] = () => [`nfc_reader()`, py.ORDER_ATOMIC];
-      reg['mag_encoder'] = () => [`mag_encoder()`, py.ORDER_ATOMIC];
-      reg['rfc'] = () => [`rfc()`, py.ORDER_ATOMIC];
-      reg['text_speech'] = () => [`text_speech()`, py.ORDER_ATOMIC];
-      reg['uv_sensor'] = () => [`uv_sensor()`, py.ORDER_ATOMIC];
-      reg['temp_sensor'] = () => [`temp_sensor()`, py.ORDER_ATOMIC];
-      reg['accelerometer'] = () => [`accelerometer()`, py.ORDER_ATOMIC];
-      reg['max'] = b => [`max()`, py.ORDER_ATOMIC];
-      reg['ambient-sen'] = () => [`ambient()`, py.ORDER_ATOMIC];
-      reg['finger_print_enroll'] = b => [`fingerprint_enroll()`, py.ORDER_ATOMIC];
-      reg['finger_print_match'] = b => [`fingerprint_match()`, py.ORDER_ATOMIC];
+      reg['accelerometer_sensor'] = () => [`await async_accelerometer()`, py.ORDER_ATOMIC];
+      reg['rtc_sensor'] = () => [`await async_rtc()`, py.ORDER_ATOMIC];
+      reg['LCD'] = () => [`await async_LCD()`, py.ORDER_ATOMIC];
+      reg['pressure'] = () => [`await async_pressure()`, py.ORDER_ATOMIC];
+      reg['compass'] = () => [`await async_compass()`, py.ORDER_ATOMIC];
+      reg['ceprom'] = () => [`await async_ceprom()`, py.ORDER_ATOMIC];
+      reg['gusture'] = () => [`await async_gusture()`, py.ORDER_ATOMIC];
+      reg['ir_temp'] = () => [`await async_ir_temp()`, py.ORDER_ATOMIC];
+      reg['motor_driver'] = () => [`await async_motor_driver()`, py.ORDER_ATOMIC];
+      reg['nfc_reader'] = () => [`await async_nfc_reader()`, py.ORDER_ATOMIC];
+      reg['mag_encoder'] = () => [`await async_mag_encoder()`, py.ORDER_ATOMIC];
+      reg['rfc'] = () => [`await async_rfc()`, py.ORDER_ATOMIC];
+      reg['text_speech'] = () => [`await async_text_speech()`, py.ORDER_ATOMIC];
+      reg['uv_sensor'] = () => [`await async_uv_sensor()`, py.ORDER_ATOMIC];
+      reg['temp_sensor'] = () => [`await async_temp_sensor()`, py.ORDER_ATOMIC];
+      reg['accelerometer'] = () => [`await async_accelerometer()`, py.ORDER_ATOMIC];
+      reg['max'] = b => [`await async_max()`, py.ORDER_ATOMIC];
+      reg['ambient-sen'] = () => [`await async_ambient()`, py.ORDER_ATOMIC];
+      reg['finger_print_enroll'] = b => [`await async_fingerprint_enroll()`, py.ORDER_ATOMIC];
+      reg['finger_print_match'] = b => [`await async_fingerprint_match()`, py.ORDER_ATOMIC];
       reg['any_input_block'] = b => [b.getFieldValue('ANY'), py.ORDER_ATOMIC];
       reg['custom_if_then'] = b => { const cond = py.valueToCode(b, 'CONDITION', py.ORDER_NONE) || 'False'; const stmts = py.statementToCode(b, 'DO'); return `if ${cond}:\n${stmts || '    pass\n'}`; };
-      reg['rgb_led_display'] = b => { const led = b.getFieldValue('LED'); const hex = b.getFieldValue('COLOR') || "#ff0000"; const time = py.valueToCode(b, 'TIME', py.ORDER_ATOMIC) || 1; const r = parseInt(hex.substring(1, 3), 16); const g = parseInt(hex.substring(3, 5), 16); const bv = parseInt(hex.substring(5, 7), 16); return `rgb_led("${led}",${r},${g},${bv},${time})\n`; };
+      reg['rgb_led_display'] = b => { const led = b.getFieldValue('LED'); const hex = b.getFieldValue('COLOR') || "#ff0000"; const time = py.valueToCode(b, 'TIME', py.ORDER_ATOMIC) || 1; const r = parseInt(hex.substring(1, 3), 16); const g = parseInt(hex.substring(3, 5), 16); const bv = parseInt(hex.substring(5, 7), 16); return `await async_rgb_led("${led}",${r},${g},${bv},${time})\n`; };
 
       reg['keypad'] = function (block) {
         const ports = (block.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -7998,10 +8050,10 @@
           return '# No Keypin selected\n';
         }
         if (ports.length === 1) {
-          return `keypad("${ports[0]}")\n`;
+          return `await async_keypad("${ports[0]}")\n`;
         }
         const portList = ports.map(p => `"${p}"`).join(', ');
-        return `keypad(${portList})\n`;
+        return `await async_keypad(${portList})\n`;
       };
       reg['compare'] = function (b) {
         var name = py.valueToCode(b, 'NAME', py.ORDER_NONE); // Correct way to get field value
@@ -9705,7 +9757,6 @@
         // Expo dev server changes the base URL, so we try multiple paths
         var PATHS_TO_TRY = [
           './icons/',                    // normal (index.html and icons/ in same folder)
-          './blockly/icons/',            // Expo dev server (base = assets/)
           './assets/blockly/icons/',     // fallback
           '/assets/blockly/icons/'       // absolute fallback
         ];
@@ -9871,15 +9922,17 @@
           const xmlList = [];
 
           // Top spacer so blocks don't hide under the floating search box
+          // Using a non-breaking space ensures Blockly's bounding box calculation
+          // includes this block, stretching the dark blue flyout background to the top!
           const gap = document.createElement('label');
-          gap.setAttribute('text', ' ');
+          gap.setAttribute('text', '\u00A0');
           gap.setAttribute('gap', '48');
           xmlList.push(gap);
 
           const q = input.value.trim().toLowerCase();
           if (!q) {
             const hint = document.createElement('label');
-            hint.setAttribute('text', 'Type above to search all blocks…');
+            hint.setAttribute('text', '');
             xmlList.push(hint);
             return xmlList;
           }
@@ -9956,7 +10009,7 @@
                 return;
               }
               container.classList.add('hidden');
-              
+
               // Clear search when it hides so the next time it opens or after a block is dragged, it's empty
               if (input.value !== '') {
                 input.value = '';
@@ -11505,7 +11558,16 @@
 
 
       // CLEAR
-      document.getElementById('btnClear').onclick = () => { workspace.clear(); updateCode(); };
+      document.getElementById('btnClear').onclick = () => {
+        workspace.clear();
+        Blockly.serialization.workspaces.load({
+          blocks: {
+            languageVersion: 0,
+            blocks: [{ type: "start", x: 40, y: 40, deletable: false, fields: { NAME: "when Start Button clicked" } }]
+          }
+        }, workspace);
+        updateCode();
+      };
 
       // UNDO
       document.getElementById('btnUndo').onclick = () => { workspace.undo(false); };
