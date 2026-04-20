@@ -7689,7 +7689,7 @@
         const fn = b.getFieldValue('STATE') === '1' ? 'robot.led_on' : 'robot.led_off';
         return ports.map(p => `${fn}(${p})\n`).join('');
       };
-      reg['rfid'] = b => [`rfid()`, py.ORDER_ATOMIC];
+      reg['rfid'] = b => [`await async_rfid()`, py.ORDER_ATOMIC];
       reg['bt_send'] = b => { const t = py.valueToCode(b, 'TEXT', py.ORDER_NONE) || "''"; return `robot.bt_send(${t})\n`; };
       reg['sen_ultrasonic'] = b => `distance = robot.ultrasonic_cm(${b.getFieldValue('PORT') || 0})\n`;
       reg['sen_temp'] = b => { const pins = (b.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean); if (!pins.length) return "# no pins\n"; return pins.map(p => `temp_port(${p})\n`).join(''); };
