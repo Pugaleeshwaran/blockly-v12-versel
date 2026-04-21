@@ -8260,7 +8260,7 @@
       reg['system_status'] = () => [`system_status.running`, py.ORDER_ATOMIC];
       reg['accelerometer_sensor'] = () => [`await async_accelerometer()`, py.ORDER_ATOMIC];
       reg['rtc_sensor'] = () => [`await async_rtc()`, py.ORDER_ATOMIC];
-      reg['LCD'] = () => [`await async_LCD()`, py.ORDER_ATOMIC];
+      reg['LCD'] = () => [`await async_lcd()`, py.ORDER_ATOMIC];
       reg['pressure'] = () => [`await async_pressure()`, py.ORDER_ATOMIC];
       reg['compass'] = () => [`await async_compass()`, py.ORDER_ATOMIC];
       reg['ceprom'] = () => [`await async_ceprom()`, py.ORDER_ATOMIC];
