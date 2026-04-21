@@ -5798,10 +5798,23 @@
     // =====================================================================
     // Unified command sender (tries USB then BLE)
     // =====================================================================
-    // ── Upload busy lock ────────────────────────────────────────────────────
-    // Set to true for the entire duration of unifiedUploadCode so that PLAY /
-    // STOP / RESET commands cannot fire in parallel and execute stale code.
+    // ── Operation busy locks ────────────────────────────────────────────────
+    // _uploadBusy: true while @@START…@@END sequence is in flight.
+    // _playBusy  : true while board is executing (PLAY sent, STOP not yet sent).
+    // Rules:
+    //   • Upload blocked while _playBusy  → must STOP first, then upload.
+    //   • PLAY/STOP/RESET blocked while _uploadBusy → wait for upload to finish.
     let _uploadBusy = false;
+    let _playBusy   = false;
+
+    function _setPlayBusy(state) {
+      _playBusy = state;
+      const playBtn   = document.getElementById("playmode");
+      const uploadBtn = document.getElementById("upload");
+      if (playBtn)   { playBtn.style.opacity   = state ? "0.5" : ""; }
+      // Upload button is disabled (greyed) while playing so user can't accidentally upload.
+      if (uploadBtn) { uploadBtn.disabled = state; uploadBtn.style.opacity = state ? "0.5" : ""; }
+    }
 
     async function sendUnifiedCommand(commandName) {
       // Block all commands while an upload is in progress.
@@ -5876,9 +5889,15 @@
         return;
       }
 
-      // Guard: prevent parallel uploads or commands firing mid-upload.
+      // Guard: prevent parallel uploads.
       if (_uploadBusy) {
         handleBoardMessage("⏳ Upload already in progress, please wait...", "SYS");
+        return;
+      }
+
+      // Guard: cannot upload while board is playing — must STOP first.
+      if (_playBusy) {
+        handleBoardMessage("⛔ Cannot upload while board is running — click STOP first, then upload.", "SYS");
         return;
       }
 
@@ -11302,21 +11321,27 @@
       // ── Button Handlers ──
 
       // PLAY
-      document.getElementById("playmode").onclick = async () => { await sendUnifiedCommand("PLAY"); };
+      document.getElementById("playmode").onclick = async () => {
+        const ok = await sendUnifiedCommand("PLAY");
+        if (ok) _setPlayBusy(true);   // board is now running — lock upload until STOP
+      };
 
       // STOP
-      document.getElementById("stop").onclick = async () => { await sendUnifiedCommand("STOP"); };
+      document.getElementById("stop").onclick = async () => {
+        const ok = await sendUnifiedCommand("STOP");
+        if (ok) _setPlayBusy(false);  // board stopped — unlock upload
+      };
 
       // SOFT RESET
       document.getElementById("soft_reset").onclick = async () => {
         const ok = await sendUnifiedCommand("SOFT_RESET");
-        if (ok) handleBoardMessage("Soft Reset triggered", "SYS");
+        if (ok) { _setPlayBusy(false); handleBoardMessage("Soft Reset triggered", "SYS"); }
       };
 
       // HARD RESET
       document.getElementById("hard_reset").onclick = async () => {
         const ok = await sendUnifiedCommand("HARD_RESET");
-        if (ok) handleBoardMessage("Hardware Rebooting…", "SYS");
+        if (ok) { _setPlayBusy(false); handleBoardMessage("Hardware Rebooting…", "SYS"); }
       };
 
       // BLUETOOTH button – open scan popup
@@ -11339,6 +11364,12 @@
         // Guard: don't allow a second upload to start while one is in progress.
         if (_uploadBusy) {
           handleBoardMessage("⏳ Upload already in progress, please wait...", "SYS");
+          return;
+        }
+
+        // Guard: cannot upload while board is playing — must STOP first.
+        if (_playBusy) {
+          handleBoardMessage("⛔ Cannot upload while board is running — click STOP first, then upload.", "SYS");
           return;
         }
 
