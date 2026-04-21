@@ -5565,6 +5565,8 @@
             if (!stopUsbReader) {
               console.error("USB read error:", readError.message);
               handleBoardMessage("USB disconnected (cable unplugged?)", "SYS");
+              // Reset state machine — any in-flight upload or play is now dead.
+              _releaseOp('idle');
               break;
             }
           }
@@ -5628,6 +5630,8 @@
         await new Promise(r => setTimeout(r, 300));
 
         handleBoardMessage("USB Disconnected ✅", "SYS");
+        // Reset state machine so buttons are fully re-enabled after reconnect.
+        _releaseOp('idle');
         const pill = document.getElementById('bt-text');
         if (pill) pill.innerText = "USB";
 
@@ -5636,6 +5640,7 @@
         stm32Port = null;
         stm32Writer = null;
         stm32Reader = null;
+        _releaseOp('idle');
       }
     }
 
@@ -5816,30 +5821,30 @@
     // ─────────────────────────────────────────────────────────────────────────
 
     let _opState = 'idle';   // 'idle' | 'playing' | 'uploading'
-    let _opBusy  = false;    // true while any async operation is executing
+    let _opBusy = false;    // true while any async operation is executing
 
     function _refreshButtons() {
-      const playBtn   = document.getElementById("playmode");
-      const stopBtn   = document.getElementById("stop");
+      const playBtn = document.getElementById("playmode");
+      const stopBtn = document.getElementById("stop");
       const uploadBtn = document.getElementById("upload");
 
-      const playing   = _opState === 'playing';
+      const playing = _opState === 'playing';
       const uploading = _opState === 'uploading';
-      const busy      = _opBusy;
+      const busy = _opBusy;
 
       // PLAY: dim while already playing or any op is running
       if (playBtn) {
-        playBtn.disabled    = playing || busy;
+        playBtn.disabled = playing || busy;
         playBtn.style.opacity = (playing || busy) ? "0.45" : "";
       }
       // STOP: only useful (and enabled) while playing; dim during upload
       if (stopBtn) {
-        stopBtn.disabled    = !playing || busy;
+        stopBtn.disabled = !playing || busy;
         stopBtn.style.opacity = (!playing || busy) ? "0.45" : "";
       }
       // UPLOAD: blocked while playing OR uploading
       if (uploadBtn) {
-        uploadBtn.disabled    = playing || uploading || busy;
+        uploadBtn.disabled = playing || uploading || busy;
         uploadBtn.style.opacity = (playing || uploading || busy) ? "0.45" : "";
       }
     }
@@ -5847,7 +5852,7 @@
     // Acquire the op lock; returns false immediately if something is already running.
     function _acquireOp(newState) {
       if (_opBusy) return false;
-      _opBusy  = true;
+      _opBusy = true;
       _opState = newState;
       _refreshButtons();
       return true;
@@ -5855,7 +5860,7 @@
 
     // Release the op lock, transition to nextState ('idle' or 'playing').
     function _releaseOp(nextState) {
-      _opBusy  = false;
+      _opBusy = false;
       _opState = nextState || 'idle';
       _refreshButtons();
     }
@@ -5863,8 +5868,8 @@
     async function sendUnifiedCommand(commandName) {
       // Map each command to the state it produces after completion
       const nextStateMap = {
-        PLAY:       'playing',
-        STOP:       'idle',
+        PLAY: 'playing',
+        STOP: 'idle',
         SOFT_RESET: 'idle',
         HARD_RESET: 'idle',
       };
@@ -5972,7 +5977,7 @@
       }
 
       async function sendData(data) {
-        if (isUSB)      await stm32Writer.write(data);
+        if (isUSB) await stm32Writer.write(data);
         else if (isBLE) await bleControlChar.writeValue(data);
       }
 
@@ -11416,7 +11421,7 @@
           const _mobileUploadTimeout = setTimeout(() => { _releaseOp('idle'); }, 30000);
 
           const _origHBM = handleBoardMessage;
-          handleBoardMessage = function(msg, src) {
+          handleBoardMessage = function (msg, src) {
             _origHBM(msg, src);
             if (msg && (msg.includes("Upload Done") || msg.includes("Send Failed"))) {
               clearTimeout(_mobileUploadTimeout);
