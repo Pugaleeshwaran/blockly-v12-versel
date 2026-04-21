@@ -5831,11 +5831,106 @@
     }
 
     // =====================================================================
+    // Unified Chunked Upload with ACK
+    // =====================================================================
+
+    const sleep = ms => new Promise(Math.random ? r => setTimeout(r, ms) : r => setTimeout(r, ms));
+
+    let _ackResolver = null;
+    function checkAck(msg) {
+      if (msg && msg.toLowerCase().includes("ack") && _ackResolver) {
+        _ackResolver(msg);
+        _ackResolver = null;
+      }
+    }
+
+    function waitForAck(timeoutMs) {
+      return new Promise((resolve, reject) => {
+        _ackResolver = resolve;
+        setTimeout(() => {
+          if (_ackResolver === resolve) {
+            _ackResolver = null;
+            reject(new Error("Timeout"));
+          }
+        }, timeoutMs);
+      });
+    }
+
+    async function unifiedUploadCode(code) {
+      if (!code || !code.trim()) {
+        alert("No code to send");
+        return;
+      }
+
+      const encoder = new TextEncoder();
+      const rawData = encoder.encode(code);
+      const CHUNK_SIZE = 20;
+
+      let isUSB = (stm32Port && stm32Writer);
+      let isBLE = (bleConnected() && bleControlChar);
+
+      if (!isUSB && !isBLE) {
+        alert("No board connected! Please connect via USB or Bluetooth.");
+        return;
+      }
+
+      async function sendData(data) {
+        if (isUSB) {
+          await stm32Writer.write(data);
+        } else if (isBLE) {
+          await bleControlChar.writeValue(data);
+        }
+      }
+
+      try {
+        handleBoardMessage(isUSB ? "USB: uploading..." : "WEB (BLE): uploading...", "SYS");
+
+        // START marker
+        await sendData(encoder.encode("@@START\n"));
+
+        // Wait for ACK
+        try {
+          handleBoardMessage("Waiting for @@START ack...", "SYS");
+          await waitForAck(5000);
+          handleBoardMessage("@@START ack received!", "SYS");
+        } catch (e) {
+          handleBoardMessage("@@START ack timeout, continuing...", "SYS");
+        }
+
+        for (let i = 0; i < rawData.length; i += CHUNK_SIZE) {
+          const chunk = rawData.slice(i, i + CHUNK_SIZE);
+          await sendData(chunk);
+          await sleep(15);
+        }
+
+        // END marker
+        await sendData(encoder.encode("\n@@END"));
+
+        // Wait for ACK
+        try {
+          handleBoardMessage("Waiting for @@END ack...", "SYS");
+          await waitForAck(5000);
+          handleBoardMessage("@@END ack received!", "SYS");
+        } catch (e) {
+          handleBoardMessage("@@END ack timeout!", "SYS");
+        }
+
+        handleBoardMessage(`Upload done (${rawData.length} bytes)`, "SYS");
+      } catch (e) {
+        console.error("Upload error:", e);
+        alert("Upload failed: " + e.message);
+      }
+    }
+
+    // =====================================================================
     // Status display
     // =====================================================================
     function handleBoardMessage(msg, source) {
       if (!msg || msg === '-') return;   // skip legacy clear-placeholder
       console.log("Board [" + (source || 'SYS') + "]:", msg);
+
+      if (typeof checkAck === 'function') checkAck(msg);
+
       const el = document.getElementById("responseDisplay");
       if (!el) return;
 
@@ -11223,24 +11318,15 @@
           return;
         }
 
-        // Desktop: USB first, then BLE
-        if (stm32Port && stm32Writer) {
-          await writeUserPyToBoard(asyncCode);
-          return;
-        }
-        if (bleConnected()) {
-          await sendCodeToBLEBoot(asyncCode);
-          return;
-        }
-        alert("No board connected. Please connect via USB or Bluetooth.");
+        // Desktop: unified upload (USB or BLE)
+        await unifiedUploadCode(asyncCode);
       };
 
       // BOOT (save user.py via USB)
       document.getElementById('btnboot').onclick = async () => {
         const code = pyGen.workspaceToCode(workspace);
         if (stm32Port && stm32Writer) {
-          await writeUserPyToBoard(wrapWithAsyncio(code));
-          handleBoardMessage("user.py saved on board", "SYS");
+          await unifiedUploadCode(wrapWithAsyncio(code));
         } else {
           alert("USB not connected.");
         }
