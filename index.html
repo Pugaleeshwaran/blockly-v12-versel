@@ -5798,7 +5798,21 @@
     // =====================================================================
     // Unified command sender (tries USB then BLE)
     // =====================================================================
+    // ── Upload busy lock ────────────────────────────────────────────────────
+    // Set to true for the entire duration of unifiedUploadCode so that PLAY /
+    // STOP / RESET commands cannot fire in parallel and execute stale code.
+    let _uploadBusy = false;
+
     async function sendUnifiedCommand(commandName) {
+      // Block all commands while an upload is in progress.
+      if (_uploadBusy) {
+        handleBoardMessage(
+          "⏳ Upload in progress — " + commandName + " will run after upload completes.",
+          "SYS"
+        );
+        return false;
+      }
+
       const encoder = new TextEncoder();
 
       if (stm32Port && stm32Writer) {
@@ -5862,6 +5876,12 @@
         return;
       }
 
+      // Guard: prevent parallel uploads or commands firing mid-upload.
+      if (_uploadBusy) {
+        handleBoardMessage("⏳ Upload already in progress, please wait...", "SYS");
+        return;
+      }
+
       const encoder = new TextEncoder();
       const rawData = encoder.encode(code);
       const CHUNK_SIZE = 20;
@@ -5881,6 +5901,11 @@
           await bleControlChar.writeValue(data);
         }
       }
+
+      // Lock: disable upload button and block commands for the full upload duration.
+      _uploadBusy = true;
+      const uploadBtn = document.getElementById("upload");
+      if (uploadBtn) { uploadBtn.disabled = true; uploadBtn.style.opacity = "0.5"; }
 
       try {
         handleBoardMessage(isUSB ? "USB: uploading..." : "WEB (BLE): uploading...", "SYS");
@@ -5919,6 +5944,10 @@
       } catch (e) {
         console.error("Upload error:", e);
         alert("Upload failed: " + e.message);
+      } finally {
+        // Always release the lock so buttons recover even on error/timeout.
+        _uploadBusy = false;
+        if (uploadBtn) { uploadBtn.disabled = false; uploadBtn.style.opacity = ""; }
       }
     }
 
@@ -11307,12 +11336,42 @@
 
       // UPLOAD button
       document.getElementById("upload").onclick = async () => {
+        // Guard: don't allow a second upload to start while one is in progress.
+        if (_uploadBusy) {
+          handleBoardMessage("⏳ Upload already in progress, please wait...", "SYS");
+          return;
+        }
+
         const code = pyGen.workspaceToCode(workspace);
         if (!code.trim()) { alert("Please drag some blocks first!"); return; }
         const asyncCode = wrapWithAsyncio(code);
 
         if (isMobileApp()) {
-          // Mobile: hand off to App.js via bridge
+          // Mobile: lock the upload button for the duration of the BLE upload.
+          // App.js will call handleBoardMessage("Upload Done! ✅") when finished —
+          // we watch for that message in a one-shot listener to release the lock.
+          _uploadBusy = true;
+          const uploadBtn = document.getElementById("upload");
+          if (uploadBtn) { uploadBtn.disabled = true; uploadBtn.style.opacity = "0.5"; }
+
+          // Release lock when App.js signals completion or after a generous timeout.
+          const _mobileUploadTimeout = setTimeout(() => {
+            _uploadBusy = false;
+            if (uploadBtn) { uploadBtn.disabled = false; uploadBtn.style.opacity = ""; }
+          }, 30000); // 30 s safety net
+
+          // Patch handleBoardMessage once to detect upload completion from App.js.
+          const _origHBM = handleBoardMessage;
+          handleBoardMessage = function(msg, src) {
+            _origHBM(msg, src);
+            if (msg && (msg.includes("Upload Done") || msg.includes("Send Failed"))) {
+              clearTimeout(_mobileUploadTimeout);
+              _uploadBusy = false;
+              if (uploadBtn) { uploadBtn.disabled = false; uploadBtn.style.opacity = ""; }
+              handleBoardMessage = _origHBM; // restore original
+            }
+          };
+
           handleBoardMessage("Uploading via Bluetooth…", "SYS");
           window.ReactNativeWebView.postMessage(JSON.stringify({ type: "SEND_DATA", data: asyncCode }));
           return;
