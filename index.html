@@ -5565,8 +5565,6 @@
             if (!stopUsbReader) {
               console.error("USB read error:", readError.message);
               handleBoardMessage("USB disconnected (cable unplugged?)", "SYS");
-              // Reset state machine — any in-flight upload or play is now dead.
-              _releaseOp('idle');
               break;
             }
           }
@@ -5630,8 +5628,6 @@
         await new Promise(r => setTimeout(r, 300));
 
         handleBoardMessage("USB Disconnected ✅", "SYS");
-        // Reset state machine so buttons are fully re-enabled after reconnect.
-        _releaseOp('idle');
         const pill = document.getElementById('bt-text');
         if (pill) pill.innerText = "USB";
 
@@ -5640,7 +5636,6 @@
         stm32Port = null;
         stm32Writer = null;
         stm32Reader = null;
-        _releaseOp('idle');
       }
     }
 
@@ -5803,120 +5798,48 @@
     // =====================================================================
     // Unified command sender (tries USB then BLE)
     // =====================================================================
-    // ── Serialising operation queue ─────────────────────────────────────────
-    // ALL board operations (PLAY, STOP, RESET, UPLOAD) run through this queue
-    // so they NEVER overlap. Each call waits for the previous one to fully
-    // finish before starting. Duplicate PLAY/STOP clicks are silently dropped
-    // if the same operation is already pending.
-    //
-    //  States:
-    //    _opState = 'idle'      — nothing running
-    //    _opState = 'playing'   — PLAY was sent, board is executing
-    //    _opState = 'uploading' — @@START…@@END in flight
-    //
-    // Button visibility rules (enforced by _refreshButtons):
-    //    idle      → PLAY enabled, STOP dim,    UPLOAD enabled
-    //    playing   → PLAY dim,    STOP enabled, UPLOAD DISABLED (must stop first)
-    //    uploading → PLAY dim,    STOP dim,     UPLOAD DISABLED
-    // ─────────────────────────────────────────────────────────────────────────
-
-    let _opState = 'idle';   // 'idle' | 'playing' | 'uploading'
-    let _opBusy  = false;    // true while any async operation is executing
-
-    function _refreshButtons() {
-      const playBtn   = document.getElementById("playmode");
-      const stopBtn   = document.getElementById("stop");
-      const uploadBtn = document.getElementById("upload");
-
-      const playing   = _opState === 'playing';
-      const uploading = _opState === 'uploading';
-      const busy      = _opBusy;
-
-      // PLAY: dim while already playing or any op is running
-      if (playBtn) {
-        playBtn.disabled    = playing || busy;
-        playBtn.style.opacity = (playing || busy) ? "0.45" : "";
-      }
-      // STOP: only useful (and enabled) while playing; dim during upload
-      if (stopBtn) {
-        stopBtn.disabled    = !playing || busy;
-        stopBtn.style.opacity = (!playing || busy) ? "0.45" : "";
-      }
-      // UPLOAD: blocked while playing OR uploading
-      if (uploadBtn) {
-        uploadBtn.disabled    = playing || uploading || busy;
-        uploadBtn.style.opacity = (playing || uploading || busy) ? "0.45" : "";
-      }
-    }
-
-    // Acquire the op lock; returns false immediately if something is already running.
-    function _acquireOp(newState) {
-      if (_opBusy) return false;
-      _opBusy  = true;
-      _opState = newState;
-      _refreshButtons();
-      return true;
-    }
-
-    // Release the op lock, transition to nextState ('idle' or 'playing').
-    function _releaseOp(nextState) {
-      _opBusy  = false;
-      _opState = nextState || 'idle';
-      _refreshButtons();
-    }
+    // ── Upload-in-progress lock ───────────────────────────────────────────────
+    // Prevents PLAY / STOP / RESET commands from firing while @@START…@@END
+    // upload sequence is still running. Commands issued during upload are
+    // silently ignored with a log message — they are NOT queued.
+    let _isUploading = false;
 
     async function sendUnifiedCommand(commandName) {
-      // Map each command to the state it produces after completion
-      const nextStateMap = {
-        PLAY:       'playing',
-        STOP:       'idle',
-        SOFT_RESET: 'idle',
-        HARD_RESET: 'idle',
-      };
-      const nextState = nextStateMap[commandName] || 'idle';
-
-      // Drop duplicate PLAY while already playing
-      if (commandName === 'PLAY' && _opState === 'playing') {
-        handleBoardMessage("⚠️ Already playing — click STOP first.", "SYS");
-        return false;
-      }
-      // Drop STOP if not playing
-      if (commandName === 'STOP' && _opState !== 'playing') {
-        handleBoardMessage("⚠️ Not currently playing.", "SYS");
-        return false;
-      }
-
-      // Block if upload (or any other op) is in progress
-      if (!_acquireOp('busy')) {
-        handleBoardMessage("⏳ Busy — please wait before sending " + commandName + ".", "SYS");
+      // Block any command while an upload is in progress
+      if (_isUploading) {
+        handleBoardMessage(`[Blocked] ${commandName} ignored — upload in progress`, "SYS");
         return false;
       }
 
       const encoder = new TextEncoder();
-      try {
-        if (stm32Port && stm32Writer) {
+
+      if (stm32Port && stm32Writer) {
+        try {
           await stm32Writer.write(encoder.encode(commandName + "\n"));
           handleBoardMessage(commandName + " sent via USB", "SYS");
           return true;
-        }
-        if (bleConnected() && bleControlChar) {
+        } catch (e) { console.error("USB send failed:", e); }
+      }
+
+      if (bleConnected() && bleControlChar) {
+        try {
           await bleControlChar.writeValue(encoder.encode(commandName + "\n"));
           handleBoardMessage(commandName + " sent via BLE", "SYS");
           return true;
-        }
-        if (isMobileApp()) {
-          window.ReactNativeWebView.postMessage(JSON.stringify({ type: "COMMAND", command: commandName }));
-          return true;
-        }
-        alert("No board connected! Please connect via USB or Bluetooth.");
-        return false;
-      } catch (e) {
-        console.error("Command send failed:", e);
-        handleBoardMessage("Command failed: " + commandName, "SYS");
-        return false;
-      } finally {
-        _releaseOp(nextState);
+        } catch (e) { console.error("BLE send failed:", e); }
       }
+
+      if (isMobileApp()) {
+        // Mobile: send command via bridge
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: "COMMAND",
+          command: commandName
+        }));
+        return true;
+      }
+
+      alert("No board connected! Please connect via USB or Bluetooth.");
+      return false;
     }
 
     // =====================================================================
@@ -5951,15 +5874,9 @@
         return;
       }
 
-      // Block upload while playing — user must STOP first
-      if (_opState === 'playing') {
-        handleBoardMessage("⛔ Board is running — click STOP first, then upload.", "SYS");
-        return;
-      }
-
-      // Block if any other operation is already running
-      if (!_acquireOp('uploading')) {
-        handleBoardMessage("⏳ Another operation is in progress — please wait.", "SYS");
+      // Prevent re-entrant uploads
+      if (_isUploading) {
+        handleBoardMessage("Upload already in progress — please wait.", "SYS");
         return;
       }
 
@@ -5967,24 +5884,38 @@
       const rawData = encoder.encode(code);
       const CHUNK_SIZE = 20;
 
-      const isUSB = (stm32Port && stm32Writer);
-      const isBLE = (bleConnected() && bleControlChar);
+      let isUSB = (stm32Port && stm32Writer);
+      let isBLE = (bleConnected() && bleControlChar);
 
       if (!isUSB && !isBLE) {
-        _releaseOp('idle');
         alert("No board connected! Please connect via USB or Bluetooth.");
         return;
       }
 
       async function sendData(data) {
-        if (isUSB)      await stm32Writer.write(data);
-        else if (isBLE) await bleControlChar.writeValue(data);
+        if (isUSB) {
+          await stm32Writer.write(data);
+        } else if (isBLE) {
+          await bleControlChar.writeValue(data);
+        }
       }
+
+      // ── Lock: disable Play / Stop / Upload buttons while uploading ──────────
+      _isUploading = true;
+      const _uploadBtn = document.getElementById("upload");
+      const _playBtn   = document.getElementById("playmode");
+      const _stopBtn   = document.getElementById("stop");
+      if (_uploadBtn) { _uploadBtn.disabled = true; _uploadBtn.style.opacity = "0.45"; }
+      if (_playBtn)   { _playBtn.disabled   = true; _playBtn.style.opacity   = "0.45"; }
+      if (_stopBtn)   { _stopBtn.disabled   = true; _stopBtn.style.opacity   = "0.45"; }
 
       try {
         handleBoardMessage(isUSB ? "USB: uploading..." : "WEB (BLE): uploading...", "SYS");
 
+        // START marker
         await sendData(encoder.encode("@@START\n"));
+
+        // Wait for ACK
         try {
           handleBoardMessage("Waiting for @@START ack...", "SYS");
           await waitForAck(5000);
@@ -5994,11 +5925,15 @@
         }
 
         for (let i = 0; i < rawData.length; i += CHUNK_SIZE) {
-          await sendData(rawData.slice(i, i + CHUNK_SIZE));
+          const chunk = rawData.slice(i, i + CHUNK_SIZE);
+          await sendData(chunk);
           await sleep(15);
         }
 
+        // END marker
         await sendData(encoder.encode("\n@@END"));
+
+        // Wait for ACK
         try {
           handleBoardMessage("Waiting for @@END ack...", "SYS");
           await waitForAck(5000);
@@ -6012,8 +5947,11 @@
         console.error("Upload error:", e);
         alert("Upload failed: " + e.message);
       } finally {
-        // After upload, board is idle (not auto-playing) — release to idle
-        _releaseOp('idle');
+        // ── Unlock: re-enable buttons regardless of success / failure ─────────
+        _isUploading = false;
+        if (_uploadBtn) { _uploadBtn.disabled = false; _uploadBtn.style.opacity = ""; }
+        if (_playBtn)   { _playBtn.disabled   = false; _playBtn.style.opacity   = ""; }
+        if (_stopBtn)   { _stopBtn.disabled   = false; _stopBtn.style.opacity   = ""; }
       }
     }
 
@@ -11407,29 +11345,7 @@
         const asyncCode = wrapWithAsyncio(code);
 
         if (isMobileApp()) {
-          // Block if playing or busy
-          if (_opState === 'playing') {
-            handleBoardMessage("⛔ Board is running — click STOP first, then upload.", "SYS");
-            return;
-          }
-          if (!_acquireOp('uploading')) {
-            handleBoardMessage("⏳ Another operation is in progress — please wait.", "SYS");
-            return;
-          }
-
-          // Release lock when App.js signals completion or after a 30 s safety net.
-          const _mobileUploadTimeout = setTimeout(() => { _releaseOp('idle'); }, 30000);
-
-          const _origHBM = handleBoardMessage;
-          handleBoardMessage = function(msg, src) {
-            _origHBM(msg, src);
-            if (msg && (msg.includes("Upload Done") || msg.includes("Send Failed"))) {
-              clearTimeout(_mobileUploadTimeout);
-              handleBoardMessage = _origHBM;
-              _releaseOp('idle');
-            }
-          };
-
+          // Mobile: hand off to App.js via bridge
           handleBoardMessage("Uploading via Bluetooth…", "SYS");
           window.ReactNativeWebView.postMessage(JSON.stringify({ type: "SEND_DATA", data: asyncCode }));
           return;
