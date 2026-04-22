@@ -8168,7 +8168,7 @@
       reg['LCD'] = () => [`await async_LCD()`, py.ORDER_ATOMIC];
       reg['pressure'] = () => [`await async_pressure()`, py.ORDER_ATOMIC];
       reg['compass'] = () => [`await async_compass()`, py.ORDER_ATOMIC];
-      reg['ceprom'] = () => [`await async_ceprom()`, py.ORDER_ATOMIC];
+      reg['ceprom'] = () => [`await async_eeprom()`, py.ORDER_ATOMIC];
       reg['gusture'] = () => [`await async_gesture()`, py.ORDER_ATOMIC];
       reg['ir_temp'] = () => [`await async_ir_temp()`, py.ORDER_ATOMIC];
       reg['motor_driver'] = () => [`await async_motor_driver()`, py.ORDER_ATOMIC];
