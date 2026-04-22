@@ -5798,27 +5798,7 @@
     // =====================================================================
     // Unified command sender (tries USB then BLE)
     // =====================================================================
-    // ── Upload-in-progress lock ───────────────────────────────────────────────
-    // Prevents PLAY / STOP / RESET commands from firing while @@START…@@END
-    // upload sequence is still running. Commands issued during upload are
-    // silently ignored with a log message — they are NOT queued.
-    let _isUploading = false;
-
-    // ── Stop-in-progress guard (prevents rapid double-stop spam) ─────────────
-    let _isStopping = false;
-
     async function sendUnifiedCommand(commandName) {
-      // Block any command while an upload is in progress
-      if (_isUploading) {
-        handleBoardMessage(`[Blocked] ${commandName} ignored — upload in progress`, "SYS");
-        return false;
-      }
-
-      // Route STOP through the dedicated reliable-stop path
-      if (commandName === "STOP") {
-        return await sendStopCommand();
-      }
-
       const encoder = new TextEncoder();
 
       if (stm32Port && stm32Writer) {
@@ -5838,6 +5818,7 @@
       }
 
       if (isMobileApp()) {
+        // Mobile: send command via bridge
         window.ReactNativeWebView.postMessage(JSON.stringify({
           type: "COMMAND",
           command: commandName
@@ -5847,132 +5828,6 @@
 
       alert("No board connected! Please connect via USB or Bluetooth.");
       return false;
-    }
-
-    // =====================================================================
-    // Reliable STOP — sends Ctrl+C bursts to interrupt MicroPython,
-    // then the STOP text command, with up to MAX_RETRIES attempts.
-    //
-    // Why Ctrl+C (\x03)?
-    //   MicroPython's running loop only reliably exits via a real
-    //   KeyboardInterrupt at the REPL level.  Sending just "STOP\n"
-    //   relies on the firmware polling for that string inside the loop —
-    //   if the loop is tight or the board is mid-instruction the string
-    //   is missed.  \x03 is handled at the hardware-UART / REPL level and
-    //   fires the interrupt immediately, regardless of what the code is doing.
-    // =====================================================================
-    async function sendStopCommand() {
-      if (_isStopping) {
-        handleBoardMessage("Stop already in progress…", "SYS");
-        return false;
-      }
-
-      const isUSB    = !!(stm32Port && stm32Writer);
-      const isBLE    = !!(bleConnected() && bleControlChar);
-      const isMobile = isMobileApp();
-
-      if (!isUSB && !isBLE && !isMobile) {
-        alert("No board connected! Please connect via USB or Bluetooth.");
-        return false;
-      }
-
-      if (isMobile) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: "COMMAND", command: "STOP" }));
-        handleBoardMessage("STOP sent via Mobile", "SYS");
-        return true;
-      }
-
-      _isStopping = true;
-      const stopBtn = document.getElementById("stop");
-      if (stopBtn) { stopBtn.disabled = true; stopBtn.style.opacity = "0.45"; }
-
-      const encoder   = new TextEncoder();
-      const CTRL_C    = encoder.encode("\x03");   // MicroPython interrupt
-      const STOP_CMD  = encoder.encode("STOP\n"); // firmware text command
-      const MAX_RETRIES = 3;
-      const RETRY_GAP   = 600; // ms between retry rounds
-
-      async function writeRaw(data) {
-        if (isUSB) await stm32Writer.write(data);
-        else       await bleControlChar.writeValue(data);
-      }
-
-      let stopped = false;
-
-      // Listen for any "stopped" / "idle" / "ok" / "ready" acknowledgement
-      // from the board for up to RETRY_GAP ms after each burst.
-      function waitForStopAck(timeoutMs) {
-        return new Promise(resolve => {
-          const orig = window._stopAckResolve;
-          window._stopAckResolve = resolve;
-          setTimeout(() => {
-            if (window._stopAckResolve === resolve) {
-              window._stopAckResolve = null;
-              resolve(false);
-            }
-          }, timeoutMs);
-        });
-      }
-
-      // Patch handleBoardMessage to detect stop ACK (patched once, cleaned up after)
-      const _origHandleBoard = handleBoardMessage;
-      handleBoardMessage = function(msg, source) {
-        _origHandleBoard(msg, source);
-        if (window._stopAckResolve) {
-          const low = (msg || '').toLowerCase();
-          if (low.includes('stopped') || low.includes('idle') ||
-              low.includes('ready')   || low.includes('ok')   ||
-              low.includes('halt')) {
-            const r = window._stopAckResolve;
-            window._stopAckResolve = null;
-            r(true);
-          }
-        }
-      };
-
-      try {
-        for (let attempt = 1; attempt <= MAX_RETRIES && !stopped; attempt++) {
-          handleBoardMessage(`Stop attempt ${attempt}/${MAX_RETRIES}…`, "SYS");
-
-          try {
-            // 1. Send 3× Ctrl+C with tiny gaps — hits the MicroPython REPL
-            //    interrupt handler no matter what the code is doing
-            await writeRaw(CTRL_C); await new Promise(r => setTimeout(r, 50));
-            await writeRaw(CTRL_C); await new Promise(r => setTimeout(r, 50));
-            await writeRaw(CTRL_C); await new Promise(r => setTimeout(r, 50));
-
-            // 2. Send the firmware STOP command for boards that handle it
-            await writeRaw(STOP_CMD);
-
-            handleBoardMessage("STOP sent via " + (isUSB ? "USB" : "BLE"), "SYS");
-          } catch (e) {
-            console.error("Stop send error:", e);
-            handleBoardMessage("Stop send error: " + e.message, "SYS");
-            break;
-          }
-
-          // 3. Wait briefly for an ACK; if none, retry
-          const acked = await waitForStopAck(RETRY_GAP);
-          if (acked) {
-            handleBoardMessage("✅ Board confirmed stopped.", "SYS");
-            stopped = true;
-          } else if (attempt < MAX_RETRIES) {
-            handleBoardMessage(`No stop ACK — retrying…`, "SYS");
-          }
-        }
-
-        if (!stopped) {
-          handleBoardMessage("⚠️ Board did not confirm stop (Ctrl+C sent — execution should have halted).", "SYS");
-        }
-      } finally {
-        // Restore original handler and re-enable button
-        handleBoardMessage = _origHandleBoard;
-        window._stopAckResolve = null;
-        _isStopping = false;
-        if (stopBtn) { stopBtn.disabled = false; stopBtn.style.opacity = ""; }
-      }
-
-      return true;
     }
 
     // =====================================================================
@@ -6007,12 +5862,6 @@
         return;
       }
 
-      // Prevent re-entrant uploads
-      if (_isUploading) {
-        handleBoardMessage("Upload already in progress — please wait.", "SYS");
-        return;
-      }
-
       const encoder = new TextEncoder();
       const rawData = encoder.encode(code);
       const CHUNK_SIZE = 20;
@@ -6032,15 +5881,6 @@
           await bleControlChar.writeValue(data);
         }
       }
-
-      // ── Lock: disable Play / Stop / Upload buttons while uploading ──────────
-      _isUploading = true;
-      const _uploadBtn = document.getElementById("upload");
-      const _playBtn   = document.getElementById("playmode");
-      const _stopBtn   = document.getElementById("stop");
-      if (_uploadBtn) { _uploadBtn.disabled = true; _uploadBtn.style.opacity = "0.45"; }
-      if (_playBtn)   { _playBtn.disabled   = true; _playBtn.style.opacity   = "0.45"; }
-      if (_stopBtn)   { _stopBtn.disabled   = true; _stopBtn.style.opacity   = "0.45"; }
 
       try {
         handleBoardMessage(isUSB ? "USB: uploading..." : "WEB (BLE): uploading...", "SYS");
@@ -6079,12 +5919,6 @@
       } catch (e) {
         console.error("Upload error:", e);
         alert("Upload failed: " + e.message);
-      } finally {
-        // ── Unlock: re-enable buttons regardless of success / failure ─────────
-        _isUploading = false;
-        if (_uploadBtn) { _uploadBtn.disabled = false; _uploadBtn.style.opacity = ""; }
-        if (_playBtn)   { _playBtn.disabled   = false; _playBtn.style.opacity   = ""; }
-        if (_stopBtn)   { _stopBtn.disabled   = false; _stopBtn.style.opacity   = ""; }
       }
     }
 
