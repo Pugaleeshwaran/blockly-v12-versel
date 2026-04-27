@@ -3834,7 +3834,7 @@
             { kind: 'block', type: 'buzzer' },
             { kind: 'block', type: 'minifan' },
             { kind: 'block', type: 'buzzer_component' },
-            { kind: 'block', type: 'joystick_move' },
+
             { kind: 'block', type: 'ir_sen' },
             { kind: 'block', type: 'touch_sensor' },
           ]
@@ -3866,6 +3866,7 @@
             { kind: 'block', type: 'voltage_sensor' },
             { kind: 'block', type: 'humidity' },
             { kind: 'block', type: 'ldr' },
+            { kind: 'block', type: 'joystick_move' },
             { kind: 'block', type: 'piezo_sensor' },
           ]
         },
@@ -4710,10 +4711,10 @@
             </div>
             <div class="motor-box1-p2">
               <div class="row checkbox-wrapper-8"><input class="tgl tgl-skewed" type="checkbox" name="servoPort"
-                  id="s_C8" value="C8"><label class="tgl-btn" data-tg-off="C8" data-tg-on="C8 ON" for="s_C8"></label>
+                  id="s_B8" value="B8"><label class="tgl-btn" data-tg-off="B8" data-tg-on="B8 ON" for="s_B8"></label>
               </div>
               <div class="row checkbox-wrapper-8"><input class="tgl tgl-skewed" type="checkbox" name="servoPort"
-                  id="s_C9" value="C9"><label class="tgl-btn" data-tg-off="C9" data-tg-on="C9 ON" for="s_C9"></label>
+                  id="s_B9" value="B9"><label class="tgl-btn" data-tg-off="B9" data-tg-on="B9 ON" for="s_B9"></label>
               </div>
               <div class="row checkbox-wrapper-8"><input class="tgl tgl-skewed" type="checkbox" name="servoPort"
                   id="s_B15" value="B15"><label class="tgl-btn" data-tg-off="B15" data-tg-on="B15 ON"
@@ -4773,8 +4774,8 @@
       <div class="box1">
         <div class="row"><label><input type="checkbox" id="motorE11"> E11</label></div>
         <div class="row"><label><input type="checkbox" id="motorE12"> E12</label></div>
-        <div class="row"><label><input type="checkbox" id="motorC9"> C9</label></div>
-        <div class="row"><label><input type="checkbox" id="motorC8"> C8</label></div>
+        <div class="row"><label><input type="checkbox" id="motorB9"> B9</label></div>
+        <div class="row"><label><input type="checkbox" id="motorB8"> B8</label></div>
         <div class="row"><label><input type="checkbox" id="motorE13"> E13</label></div>
         <div class="row"><label><input type="checkbox" id="motorB15"> B15</label></div>
         <div class="row"><label><input type="checkbox" id="motorD15"> D15</label></div>
@@ -4856,10 +4857,10 @@
                   class="tgl-btn" data-tg-off="E14" data-tg-on="E14 ON" for="uni_motorE14"></label></div>
             </div>
             <div class="motor-box1-p2">
-              <div class="row checkbox-wrapper-8"><input class="tgl tgl-skewed" type="checkbox" id="uni_motorC8"><label
-                  class="tgl-btn" data-tg-off="C8" data-tg-on="C8 ON" for="uni_motorC8"></label></div>
-              <div class="row checkbox-wrapper-8"><input class="tgl tgl-skewed" type="checkbox" id="uni_motorC9"><label
-                  class="tgl-btn" data-tg-off="C9" data-tg-on="C9 ON" for="uni_motorC9"></label></div>
+              <div class="row checkbox-wrapper-8"><input class="tgl tgl-skewed" type="checkbox" id="uni_motorB8"><label
+                  class="tgl-btn" data-tg-off="B8" data-tg-on="B8 ON" for="uni_motorB8"></label></div>
+              <div class="row checkbox-wrapper-8"><input class="tgl tgl-skewed" type="checkbox" id="uni_motorB9"><label
+                  class="tgl-btn" data-tg-off="B9" data-tg-on="B9 ON" for="uni_motorB9"></label></div>
               <div class="row checkbox-wrapper-8"><input class="tgl tgl-skewed" type="checkbox" id="uni_motorB15"><label
                   class="tgl-btn" data-tg-off="B15" data-tg-on="B15 ON" for="uni_motorB15"></label></div>
               <div class="row checkbox-wrapper-8"><input class="tgl tgl-skewed" type="checkbox" id="uni_motorD15"><label
@@ -6069,7 +6070,7 @@
     function openMotorSelectionModal(block) {
       currentMotorBlock = block;
       const selectedMotors = new Set((block.getFieldValue('MOTORS') || '').split(',').map(s => s.trim()));
-      ['E12', 'E11', 'C8', 'C9', 'B15', 'E13', 'E14', 'D15'].forEach(m => {
+      ['E12', 'E11', 'B8', 'B9', 'B15', 'E13', 'E14', 'D15'].forEach(m => {
         const cb = document.getElementById('motor' + m);
         if (cb) cb.checked = selectedMotors.has(m);
       });
@@ -6079,7 +6080,7 @@
     function saveMotorSelection() {
       if (!currentMotorBlock) { closeModal(); return; }
       const selected = [];
-      ['E12', 'E11', 'C8', 'C9', 'B15', 'E13', 'E14', 'D15'].forEach(m => { const cb = document.getElementById('motor' + m); if (cb && cb.checked) selected.push(m); });
+      ['E12', 'E11', 'B8', 'B9', 'B15', 'E13', 'E14', 'D15'].forEach(m => { const cb = document.getElementById('motor' + m); if (cb && cb.checked) selected.push(m); });
       currentMotorBlock.setFieldValue(selected.length ? selected.join(',') : '', 'MOTORS');
       closeModal();
     }
@@ -6629,7 +6630,7 @@
     function openUnifiedModal(block) {
       currentUnifiedBlock = block;
       const currentMotors = (block.getFieldValue('MOTORS') || '').split(',').map(s => s.trim());
-      ['E12', 'E11', 'C8', 'C9', 'B15', 'E13', 'E14', 'D15'].forEach(m => {
+      ['E12', 'E11', 'B8', 'B9', 'B15', 'E13', 'E14', 'D15'].forEach(m => {
         const cb = document.getElementById('uni_motor' + m);
         if (cb) cb.checked = currentMotors.includes(m);
       });
@@ -6645,7 +6646,7 @@
     function saveUnifiedSelection() {
       if (!currentUnifiedBlock) { closeUnifiedModal(); return; }
       const selected = [];
-      ['E12', 'E11', 'C8', 'C9', 'B15', 'E13', 'E14', 'D15'].forEach(m => { const cb = document.getElementById('uni_motor' + m); if (cb && cb.checked) selected.push(m); });
+      ['E12', 'E11', 'B8', 'B9', 'B15', 'E13', 'E14', 'D15'].forEach(m => { const cb = document.getElementById('uni_motor' + m); if (cb && cb.checked) selected.push(m); });
       currentUnifiedBlock.setFieldValue(selected.length ? selected.join(',') : '', 'MOTORS');
       currentUnifiedBlock.setFieldValue(speedPercent, 'SPEED');
       closeUnifiedModal();
@@ -6807,16 +6808,60 @@
 
     // Shadow map kept for the direct-setAttribute fallback path
     const BLOCK_SHADOW_MAP = {
+      // blue shadow — defult_style
       start: 'blueShadow',
+      sim_solar: 'blueShadow', sim_pendulum: 'blueShadow', sim_particles: 'blueShadow',
+      sim_dna: 'blueShadow', sim_gears: 'blueShadow', sim_wave: 'blueShadow',
+      sim_bouncing: 'blueShadow', sim_windmill: 'blueShadow', sim_atom: 'blueShadow',
+      sim_globe: 'blueShadow',
+      lottie_rocket: 'blueShadow', lottie_heartbeat: 'blueShadow', lottie_weather: 'blueShadow',
+      lottie_loading: 'blueShadow', lottie_robot: 'blueShadow', lottie_starburst: 'blueShadow',
+      lottie_water: 'blueShadow', lottie_fire: 'blueShadow', lottie_lightning: 'blueShadow',
+      lottie_gearspin: 'blueShadow',
+      // ledshodow — led_style
       port_on: 'ledshodow', port_off: 'ledshodow',
-      sen_ultrasonic: 'ledshodow', sen_temp: 'ledshodow',
-      do_onoff: 'servoshodow', do_dc_motor: 'servoshodow', do_servo: 'servoshodow',
-      bt_send: 'servoshodow', do_led: 'servoshodow',
+      sen_ultrasonic: 'ledshodow', sen_temp: 'ledshodow', custom_if_then: 'ledshodow',
+      // servoshodow — block-servo (actuators/outputs)
+      do_onoff: 'servoshodow', do_dc_motor: 'servoshodow', do_dc_motor2: 'servoshodow',
+      do_servo: 'servoshodow', bt_send: 'servoshodow', do_led: 'servoshodow',
+      animo: 'servoshodow', buzzer: 'servoshodow', buzzer_component: 'servoshodow',
+      din_temp: 'servoshodow', 'flex-sensor': 'servoshodow', flexi_force_sensor: 'servoshodow',
+      humidity: 'servoshodow', joystick_move: 'servoshodow', LCD_print: 'servoshodow',
+      minifan: 'servoshodow', relay: 'servoshodow', rgb_display: 'servoshodow',
+      shock_sensor: 'servoshodow', solinoid: 'servoshodow', steper: 'servoshodow',
+      TDS_Water_sensor: 'servoshodow', water_sensor: 'servoshodow',
+      'water-turbidity-sensor': 'servoshodow', waterpump: 'servoshodow',
+      Air_quality_sensor: 'servoshodow', flex_sensor: 'servoshodow',
+      // dummyshadow — dummy_block
       ctl_delay: 'dummyshadow', do_led_param: 'dummyshadow',
-      lp_while: 'dcshodow', lp_break: 'dcshodow', lp_repeat_count: 'dcshodow', lp_label: 'dcshodow',
-      sensor: 'tempshadow', tem_sensor: 'tempshadow', xray_sensor: 'tempshadow', rc_sensor: 'tempshadow',
-      mini_motor: 'ultrashowdow', remote_motor: 'ultrashowdow', water_motor: 'ultrashowdow',
-      din_if_else: 'ultrashowdow', din_sound: 'ultrashowdow', tank_motor: 'ultrashowdow'
+      green_led: 'dummyshadow', red_led: 'dummyshadow', yellow_led: 'dummyshadow',
+      // dcshodow — block_dc (loop)
+      lp_while: 'dcshodow', lp_break: 'dcshodow', lp_repeat_count: 'dcshodow',
+      lp_label: 'dcshodow', lp_start: 'dcshodow',
+      // ultrashowdow — ultra_style
+      sensor: 'ultrashowdow', tem_sensor: 'ultrashowdow', xray_sensor: 'ultrashowdow',
+      rc_sensor: 'ultrashowdow',
+      // tempshadow — temp_style (sensors)
+      accelerometer: 'tempshadow', accelerometer_sensor: 'tempshadow',
+      'ambient-sen': 'tempshadow', ana_temp: 'tempshadow',
+      ceprom: 'tempshadow', colour_sen: 'tempshadow', compass: 'tempshadow',
+      'Current-sensor': 'tempshadow',
+      din_button: 'tempshadow', din_door: 'tempshadow', din_flame: 'tempshadow',
+      din_if_else: 'tempshadow', din_ir: 'tempshadow', din_motion: 'tempshadow',
+      din_proximity: 'tempshadow', din_sound: 'tempshadow', din_tilt: 'tempshadow',
+      din_ultra: 'tempshadow', dust: 'tempshadow', ecg: 'tempshadow',
+      gusture: 'tempshadow', heart_beat: 'tempshadow',
+      'IR-Temp': 'tempshadow', ir_sen: 'tempshadow', ir_temp: 'tempshadow',
+      LCD: 'tempshadow', ldr: 'tempshadow', light_freq: 'tempshadow',
+      load_cell: 'tempshadow', loop_end: 'tempshadow',
+      mag_encoder: 'tempshadow', magnetic_sensor: 'tempshadow', mini_motor: 'tempshadow',
+      motor_driver: 'tempshadow', nfc_reader: 'tempshadow', pressure: 'tempshadow',
+      remote_motor: 'tempshadow', rfc: 'tempshadow', rtc_sensor: 'tempshadow',
+      soil_moisture: 'tempshadow', system_status: 'tempshadow',
+      tank_motor: 'tempshadow', 'temp2-sensor': 'tempshadow', temp_sensor: 'tempshadow',
+      tep_ana: 'tempshadow', text_speech: 'tempshadow', touch_sensor: 'tempshadow',
+      uv_sensor: 'tempshadow', 'vibration-switch-sensor': 'tempshadow',
+      voltage_sensor: 'tempshadow', water_motor: 'tempshadow',
     };
 
     // CSS class → gradient map (same as mkStyleExt class names)
@@ -6831,17 +6876,69 @@
     };
 
     // Block type → CSS class (mirrors mkStyleExt registrations)
+    // ── COMPLETE MAP: every block type that has a style extension ──
     const BLOCK_CLASS_MAP = {
+      // defult_style (blue gradient)
       start: 'defult_style',
+      sim_solar: 'defult_style', sim_pendulum: 'defult_style', sim_particles: 'defult_style',
+      sim_dna: 'defult_style', sim_gears: 'defult_style', sim_wave: 'defult_style',
+      sim_bouncing: 'defult_style', sim_windmill: 'defult_style', sim_atom: 'defult_style',
+      sim_globe: 'defult_style',
+      lottie_rocket: 'defult_style', lottie_heartbeat: 'defult_style', lottie_weather: 'defult_style',
+      lottie_loading: 'defult_style', lottie_robot: 'defult_style', lottie_starburst: 'defult_style',
+      lottie_water: 'defult_style', lottie_fire: 'defult_style', lottie_lightning: 'defult_style',
+      lottie_gearspin: 'defult_style',
+
+      // led_style (red/pink gradient)
       port_on: 'led_style', port_off: 'led_style',
       sen_ultrasonic: 'led_style', sen_temp: 'led_style',
-      do_onoff: 'block-servo', do_dc_motor: 'block-servo', do_servo: 'block-servo',
-      bt_send: 'block-servo', do_led: 'block-servo',
+      custom_if_then: 'led_style',
+
+      // dummy_block (green gradient)
       ctl_delay: 'dummy_block', do_led_param: 'dummy_block',
-      lp_while: 'block_dc', lp_break: 'block_dc', lp_repeat_count: 'block_dc', lp_label: 'block_dc',
-      sensor: 'temp_style', tem_sensor: 'temp_style', xray_sensor: 'temp_style', rc_sensor: 'temp_style',
-      mini_motor: 'ultra_style', remote_motor: 'ultra_style', water_motor: 'ultra_style',
-      din_if_else: 'ultra_style', din_sound: 'ultra_style', tank_motor: 'ultra_style'
+      green_led: 'dummy_block', red_led: 'dummy_block', yellow_led: 'dummy_block',
+
+      // block_dc (DC/orange gradient)
+      lp_while: 'block_dc', lp_break: 'block_dc', lp_repeat_count: 'block_dc',
+      lp_label: 'block_dc', lp_start: 'block_dc',
+
+      // block-servo (pink gradient) — actuators, motors, outputs
+      do_onoff: 'block-servo', do_dc_motor: 'block-servo', do_dc_motor2: 'block-servo',
+      do_servo: 'block-servo', bt_send: 'block-servo', do_led: 'block-servo',
+      animo: 'block-servo', buzzer: 'block-servo', buzzer_component: 'block-servo',
+      din_temp: 'block-servo', flex_sensor: 'block-servo', flexi_force_sensor: 'block-servo',
+      humidity: 'block-servo', joystick_move: 'block-servo', LCD_print: 'block-servo',
+      minifan: 'block-servo', relay: 'block-servo', rgb_display: 'block-servo',
+      shock_sensor: 'block-servo', solinoid: 'block-servo', steper: 'block-servo',
+      TDS_Water_sensor: 'block-servo', water_sensor: 'block-servo',
+      'water-turbidity-sensor': 'block-servo', waterpump: 'block-servo',
+      Air_quality_sensor: 'block-servo', 'flex-sensor': 'block-servo',
+
+      // ultra_style (brown gradient) — ultrasonic / RC sensors
+      sensor: 'ultra_style', tem_sensor: 'ultra_style', xray_sensor: 'ultra_style',
+      rc_sensor: 'ultra_style',
+
+      // temp_style (purple gradient) — sensors / I2C / digital inputs
+      accelerometer: 'temp_style', accelerometer_sensor: 'temp_style',
+      'ambient-sen': 'temp_style', ana_temp: 'temp_style',
+      ceprom: 'temp_style', colour_sen: 'temp_style', compass: 'temp_style',
+      'Current-sensor': 'temp_style',
+      din_button: 'temp_style', din_door: 'temp_style', din_flame: 'temp_style',
+      din_if_else: 'temp_style', din_ir: 'temp_style', din_motion: 'temp_style',
+      din_proximity: 'temp_style', din_sound: 'temp_style', din_tilt: 'temp_style',
+      din_ultra: 'temp_style', dust: 'temp_style', ecg: 'temp_style',
+      gusture: 'temp_style', heart_beat: 'temp_style',
+      'IR-Temp': 'temp_style', ir_sen: 'temp_style', ir_temp: 'temp_style',
+      LCD: 'temp_style', ldr: 'temp_style', light_freq: 'temp_style',
+      load_cell: 'temp_style', loop_end: 'temp_style',
+      mag_encoder: 'temp_style', magnetic_sensor: 'temp_style', mini_motor: 'temp_style',
+      motor_driver: 'temp_style', nfc_reader: 'temp_style', pressure: 'temp_style',
+      remote_motor: 'temp_style', rfc: 'temp_style', rtc_sensor: 'temp_style',
+      soil_moisture: 'temp_style', system_status: 'temp_style',
+      tank_motor: 'temp_style', 'temp2-sensor': 'temp_style', temp_sensor: 'temp_style',
+      tep_ana: 'temp_style', text_speech: 'temp_style', touch_sensor: 'temp_style',
+      uv_sensor: 'temp_style', 'vibration-switch-sensor': 'temp_style',
+      voltage_sensor: 'temp_style', water_motor: 'temp_style',
     };
 
     /**
@@ -7476,7 +7573,7 @@
         },
 
         { type: "buzzer_component", message0: "buzzer_component %1 %2 %3 %4 %5", args0: [{ type: "field_image", src: "./assets/img/Chips_Chips_Show.png", width: 15, height: 15, alt: "", name: "IMG" }, { type: "field_label", name: "PORTS", text: "" }, { type: "field_number", name: "freq" }, { type: "field_number", name: "Delay1" }, { type: "field_number", name: "DELAY2" }], colour: "#81d4ed", previousStatement: null, nextStatement: null, extensions: ["port_image_click", "servo_color"] },
-        { type: "joystick_move", args0: [{ type: "field_label", name: "LABEL", text: "joystick" }, { type: "field_image", src: "./assets/img/Chips_Chips_Show.png", width: 15, height: 15, alt: "", name: "IMG", class: "hover-animate" }, { type: "field_label", name: "PORTS", text: "" }], message0: "%1 %2 %3", colour: "#ffb56a", output: "Boolean", extensions: ["port_image_click", "servo_color"] },
+        { type: "joystick_move", args0: [{ type: "field_label", name: "LABEL", text: "joystick" }, { type: "field_image", src: "./assets/img/Chips_Chips_Show.png", width: 15, height: 15, alt: "", name: "IMG", class: "hover-animate" }, { type: "field_label", name: "PORTS", text: "" }], message0: "%1 %2 %3", colour: "#ffb56a", output: "Boolean", extensions: ["led_pin_image_click", "servo_color"] },
         { type: "Air_quality_sensor", message0: "Air-quality-sensor %1 %2", args0: [{ type: "field_image", src: "./assets/img/Chips_Chips_Show.png", width: 15, height: 15, alt: "", name: "IMG" }, { type: "field_label", name: "PORTS", text: "" }], style: "control_blocks", output: "Boolean", extensions: ["servo_color", "led_pin_image_click"] },
         { type: "flexi_force_sensor", message0: "Flexi Force Sensor %1 %2", args0: [{ type: "field_image", src: "./assets/img/Chips_Chips_Show.png", width: 15, height: 15, alt: "", name: "IMG" }, { type: "field_label", name: "PORTS", text: "" }], style: "control_blocks", output: "Boolean", extensions: ["servo_color", "led_pin_image_click"] },
         { type: "TDS_Water_sensor", message0: "TDS Water Sensor %1 %2", args0: [{ type: "field_image", src: "./assets/img/Chips_Chips_Show.png", width: 15, height: 15, alt: "", name: "IMG" }, { type: "field_label", name: "PORTS", text: "" }], style: "control_blocks", output: "Boolean", extensions: ["servo_color", "led_pin_image_click"] },
@@ -7787,15 +7884,28 @@
       Blockly.Extensions.register('lottie_fire_click', function () { this.appendDummyInput('H_LOTTIE_FIRE').appendField(new Blockly.FieldTextInput('lottie_fire'), 'LANIM_TYPE').appendField(new Blockly.FieldTextInput('100'), 'LANIM_SPEED').setVisible(false); var f = this.getField('IMG'); if (f) f.setOnClickHandler(() => openLAnimModal(this, 'lottie_fire')); });
       Blockly.Extensions.register('lottie_lightning_click', function () { this.appendDummyInput('H_LOTTIE_LIGHTNING').appendField(new Blockly.FieldTextInput('lottie_lightning'), 'LANIM_TYPE').appendField(new Blockly.FieldTextInput('100'), 'LANIM_SPEED').setVisible(false); var f = this.getField('IMG'); if (f) f.setOnClickHandler(() => openLAnimModal(this, 'lottie_lightning')); });
       Blockly.Extensions.register('lottie_gearspin_click', function () { this.appendDummyInput('H_LOTTIE_GEARSPIN').appendField(new Blockly.FieldTextInput('lottie_gearspin'), 'LANIM_TYPE').appendField(new Blockly.FieldTextInput('100'), 'LANIM_SPEED').setVisible(false); var f = this.getField('IMG'); if (f) f.setOnClickHandler(() => openLAnimModal(this, 'lottie_gearspin')); });
-      // Style extensions
+      // Style extensions — apply class immediately AND on every change
+      // so gradient stays consistent from the moment a block enters the workspace.
       function mkStyleExt(name, cls) {
         Blockly.Extensions.register(name, function () {
           const block = this;
-          block.setOnChange(function () {
+          // Apply immediately (covers drag-from-flyout moment)
+          function applyNow() {
             const root = (typeof block.getSvgRoot === 'function')
               ? block.getSvgRoot() : block.svgGroup_;
-            if (root) root.classList.add(cls);
-          });
+            if (root) {
+              root.classList.add(cls);
+              // Also trigger the full gradient fill immediately
+              if (typeof applyGradientAndShadowToBlock === 'function') {
+                applyGradientAndShadowToBlock(block);
+              }
+            }
+          }
+          // Try immediately; also retry after a frame in case SVG is not ready yet
+          applyNow();
+          requestAnimationFrame(applyNow);
+          // Re-apply on any workspace change (resilience against Blockly re-renders)
+          block.setOnChange(function () { applyNow(); });
         });
       }
       mkStyleExt('defult_style', 'defult_style');
