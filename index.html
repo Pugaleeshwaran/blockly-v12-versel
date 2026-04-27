@@ -10416,33 +10416,33 @@
       }
 
       // ── 3. Block Count Badges on Toolbox Categories ───────────────
-      function setupCategoryBadges() {
-        function inject() {
-          try {
-            workspace.getToolbox().getToolboxItems().forEach(function (item) {
-              if (!item.getName) return;
-              const row = item.rowDiv_ ||
-                (item.getDiv && item.getDiv() &&
-                  item.getDiv().querySelector('.blocklyTreeRow'));
-              if (!row || row.querySelector('.cat-block-badge')) return;
-              let count = 0;
-              try {
-                count = (item.getContents ? item.getContents() : [])
-                  .filter(function (c) {
-                    return c.kind && c.kind.toLowerCase() === 'block';
-                  }).length;
-              } catch (_) { }
-              if (count === 0) return;
-              const badge = document.createElement('span');
-              badge.className = 'cat-block-badge';
-              badge.textContent = count;
-              row.appendChild(badge);
-            });
-          } catch (_) { }
-        }
-        setTimeout(inject, 900);
-        setTimeout(inject, 2200); // retry for slow renders
-      }
+      // function setupCategoryBadges() {
+      //   function inject() {
+      //     try {
+      //       workspace.getToolbox().getToolboxItems().forEach(function (item) {
+      //         if (!item.getName) return;
+      //         const row = item.rowDiv_ ||
+      //           (item.getDiv && item.getDiv() &&
+      //             item.getDiv().querySelector('.blocklyTreeRow'));
+      //         if (!row || row.querySelector('.cat-block-badge')) return;
+      //         let count = 0;
+      //         try {
+      //           count = (item.getContents ? item.getContents() : [])
+      //             .filter(function (c) {
+      //               return c.kind && c.kind.toLowerCase() === 'block';
+      //             }).length;
+      //         } catch (_) { }
+      //         if (count === 0) return;
+      //         const badge = document.createElement('span');
+      //         badge.className = 'cat-block-badge';
+      //         badge.textContent = count;
+      //         row.appendChild(badge);
+      //       });
+      //     } catch (_) { }
+      //   }
+      //   setTimeout(inject, 900);
+      //   setTimeout(inject, 2200); // retry for slow renders
+      // }
 
       // ── 4. Friendly Block Tooltips ────────────────────────────────
       function setupBlockTooltips() {
@@ -10522,7 +10522,7 @@
       setupBlockHoverEffects();
       setupWorkspaceHint();
       setupBlockTooltips();
-      setTimeout(setupCategoryBadges, 300);
+      // setTimeout(setupCategoryBadges, 300);
       setupResponsiveLayout();
 
 
