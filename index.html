@@ -2842,52 +2842,116 @@
       align-items: center;
     }
 
-    /* === Project Tabs === */
-    .project-tabs {
+    /* === Project Tabs — Vertical Dropdown === */
+    .project-tabs-wrapper {
+      position: relative;
+      margin-left: 8px;
+    }
+
+    .project-tabs-toggle {
       display: flex;
-      gap: 4px;
-      margin-left: 10px;
-      overflow-x: auto;
-      max-width: 300px;
-      scrollbar-width: none;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 8px;
+      background: #e2e8f0;
+      border: 1.5px solid #cbd5e1;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      color: #334155;
+      white-space: nowrap;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .project-tabs-toggle:hover {
+      background: #cbd5e1;
+    }
+
+    .project-tabs-toggle .ptab-arrow {
+      font-size: 10px;
+      transition: transform 0.2s;
+    }
+
+    .project-tabs-toggle.open .ptab-arrow {
+      transform: rotate(180deg);
+    }
+
+    .project-tabs {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      z-index: 9999;
+      min-width: 200px;
+      max-width: 280px;
+      max-height: 280px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      padding: 4px;
+      flex-direction: column;
+      gap: 2px;
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 transparent;
+    }
+
+    .project-tabs.open {
+      display: flex;
     }
 
     .project-tabs::-webkit-scrollbar {
-      display: none;
+      width: 5px;
+    }
+
+    .project-tabs::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
     }
 
     .project-tab {
       display: flex;
       align-items: center;
-      gap: 4px;
-      padding: 4px 10px;
-      border-radius: 6px;
-      background: #e2e8f0;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 7px;
+      background: transparent;
       border: 1.5px solid transparent;
       cursor: pointer;
       font-size: 12px;
       font-weight: 600;
       color: #475569;
       white-space: nowrap;
-      transition: all 0.15s;
+      transition: all 0.12s;
     }
 
     .project-tab:hover {
-      background: #cbd5e1;
+      background: #f1f5f9;
     }
 
     .project-tab.active {
-      background: #fff;
-      border-color: #94a3b8;
-      color: #1e293b;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      background: #eff6ff;
+      border-color: #93c5fd;
+      color: #1e40af;
+    }
+
+    .project-tab span:first-child {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .project-tab .tab-close {
-      font-size: 11px;
+      font-size: 13px;
       color: #94a3b8;
       cursor: pointer;
-      margin-left: 2px;
+      flex-shrink: 0;
+      line-height: 1;
+      padding: 0 2px;
     }
 
     .project-tab .tab-close:hover {
@@ -3625,8 +3689,15 @@
         <div class="project-name-container">
           <input type="text" id="projectNameInput" value="Untitled" title="Project Name">
         </div>
-        <!-- Project Tabs (saved projects appear here) -->
-        <div class="project-tabs" id="projectTabs"></div>
+        <!-- Project Tabs — vertical dropdown -->
+        <div class="project-tabs-wrapper" id="projectTabsWrapper">
+          <div class="project-tabs-toggle" id="projectTabsToggle" onclick="toggleProjectDropdown()">
+            <i class="fa-solid fa-layer-group"></i>
+            <span id="projectTabsCount">Projects</span>
+            <span class="ptab-arrow">▼</span>
+          </div>
+          <div class="project-tabs" id="projectTabs"></div>
+        </div>
       </div>
 
 
@@ -11690,6 +11761,10 @@
             label.onclick = (e) => {
               e.stopPropagation();
               ProjectManager.switchToProject(name);
+              // Close dropdown after switching
+              tabsContainer.classList.remove('open');
+              const toggle = document.getElementById('projectTabsToggle');
+              if (toggle) toggle.classList.remove('open');
             };
             tab.appendChild(label);
 
@@ -11705,6 +11780,14 @@
 
             tabsContainer.appendChild(tab);
           });
+
+          // Update toggle button label with count
+          const countEl = document.getElementById('projectTabsCount');
+          if (countEl) {
+            countEl.textContent = projects.length > 0
+              ? projects.length + ' Project' + (projects.length !== 1 ? 's' : '')
+              : 'Projects';
+          }
         },
 
         /** Switch to a different saved project */
@@ -12499,6 +12582,26 @@
         btn.textContent = LABELS[STATES[idx]];
       };
     })();
+
+    // ── Project Dropdown toggle ─────────────────────────────────────────────
+    window.toggleProjectDropdown = function () {
+      const panel = document.getElementById('projectTabs');
+      const toggle = document.getElementById('projectTabsToggle');
+      if (!panel || !toggle) return;
+      const isOpen = panel.classList.toggle('open');
+      toggle.classList.toggle('open', isOpen);
+    };
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function (e) {
+      const wrapper = document.getElementById('projectTabsWrapper');
+      if (wrapper && !wrapper.contains(e.target)) {
+        const panel = document.getElementById('projectTabs');
+        const toggle = document.getElementById('projectTabsToggle');
+        if (panel) panel.classList.remove('open');
+        if (toggle) toggle.classList.remove('open');
+      }
+    });
 
     window.addEventListener('load', start);
 
