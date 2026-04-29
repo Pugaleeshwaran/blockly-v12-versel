@@ -5544,6 +5544,7 @@
         stopUsbReader = false;
 
         let buffer = "";
+        let _yieldCounter = 0;
         while (!stopUsbReader) {
           try {
             const { value, done } = await reader.read();
@@ -5560,6 +5561,13 @@
               for (let line of lines) {
                 line = line.trim();
                 if (line) handleBoardMessage(line, 'USB');
+              }
+              // Yield to the UI thread every 32 reads to prevent starvation
+              // when data arrives in rapid continuous bursts
+              _yieldCounter++;
+              if (_yieldCounter >= 32) {
+                _yieldCounter = 0;
+                await new Promise(r => setTimeout(r, 0));
               }
             }
           } catch (readError) {
@@ -5926,14 +5934,43 @@
     // =====================================================================
     // Status display
     // =====================================================================
+    // ── Batched message queue — avoids a forced reflow on every USB/BLE line ──
+    const _msgQueue = [];
+    let _msgRafPending = false;
+
+    function _flushMsgQueue() {
+      _msgRafPending = false;
+      const el = document.getElementById("responseDisplay");
+      if (!el || _msgQueue.length === 0) return;
+
+      // Build a DocumentFragment so we do ONE DOM write, not N
+      const frag = document.createDocumentFragment();
+      while (_msgQueue.length > 0) {
+        const { ts, cls, src, text } = _msgQueue.shift();
+        const row = document.createElement('div');
+        row.className = 'rd-line';
+        row.innerHTML =
+          '<span class="rd-ts">' + ts + '</span>' +
+          '<span class="' + cls + '">[' + src + ']</span>' +
+          '<span class="rd-msg">' + text + '</span>';
+        frag.appendChild(row);
+      }
+      el.appendChild(frag);
+
+      // Trim to 500 lines in one pass
+      while (el.children.length > 500) el.removeChild(el.firstChild);
+
+      // Single scroll measurement (only when near bottom)
+      if (el.scrollHeight - el.scrollTop < el.clientHeight + 80) {
+        el.scrollTop = el.scrollHeight;
+      }
+    }
+
     function handleBoardMessage(msg, source) {
       if (!msg || msg === '-') return;   // skip legacy clear-placeholder
       console.log("Board [" + (source || 'SYS') + "]:", msg);
 
       if (typeof checkAck === 'function') checkAck(msg);
-
-      const el = document.getElementById("responseDisplay");
-      if (!el) return;
 
       const ts = new Date().toLocaleTimeString('en', { hour12: false });
       const src = (source || 'SYS').toUpperCase();
@@ -5942,18 +5979,14 @@
           : src === 'WIFI' ? 'rd-badge-wifi'
             : 'rd-badge-sys';
 
-      const row = document.createElement('div');
-      row.className = 'rd-line';
-      row.innerHTML =
-        '<span class="rd-ts">' + ts + '</span>' +
-        '<span class="' + cls + '">[' + src + ']</span>' +
-        '<span class="rd-msg">' + msg.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>';
+      // Push to queue instead of writing to DOM immediately
+      _msgQueue.push({ ts, cls, src, text: msg.replace(/</g, '&lt;').replace(/>/g, '&gt;') });
 
-      el.appendChild(row);
-      // Keep at most 500 lines to avoid memory bloat
-      while (el.children.length > 500) el.removeChild(el.firstChild);
-      // Auto-scroll to latest message
-      el.scrollTop = el.scrollHeight;
+      // Schedule one RAF flush — if one is already pending, nothing extra needed
+      if (!_msgRafPending) {
+        _msgRafPending = true;
+        requestAnimationFrame(_flushMsgQueue);
+      }
     }
 
     function rdClear() {
@@ -7202,24 +7235,22 @@
       setTimeout(applyToAllBlocks, 300);
       setTimeout(applyToAllBlocks, 700);
 
+      // Only re-apply on CREATE/LOAD — not every drag/move/select/change
+      // (those events fired hundreds of times per second — causing the browser freeze)
+      let _gradRafPending = false;
       ws.addChangeListener((e) => {
         const relevant = [
           Blockly.Events.BLOCK_CREATE,
-          Blockly.Events.BLOCK_CHANGE,
-          Blockly.Events.BLOCK_MOVE,
-          Blockly.Events.BLOCK_DRAG,
-          Blockly.Events.SELECTED,
           Blockly.Events.FINISHED_LOADING,
           'finished_loading',
           'block_create',
-          'block_change',
-          'block_move',
-          'block_drag',
-          'selected'
         ];
-        if (relevant.includes(e.type)) {
-          // Double-RAF: run after Blockly’s own render pass
-          requestAnimationFrame(() => requestAnimationFrame(applyToAllBlocks));
+        if (relevant.includes(e.type) && !_gradRafPending) {
+          _gradRafPending = true;
+          requestAnimationFrame(() => {
+            applyToAllBlocks();
+            _gradRafPending = false;
+          });
         }
       });
 
@@ -7244,9 +7275,13 @@
       }
 
       // MutationObserver: catch Blockly resetting style.fill on .blocklyPath
+      // FIX: disconnect observer while applying to prevent self-triggering infinite loop
       const blocklyDiv = document.getElementById('blocklyDiv');
       if (blocklyDiv) {
+        let _moApplying = false;
+        const moOptions = { subtree: true, attributes: true, attributeFilter: ['style'] };
         const mo = new MutationObserver((mutations) => {
+          if (_moApplying) return; // guard: skip re-entrant calls triggered by our own writes
           let needsApply = false;
           for (const m of mutations) {
             if (
@@ -7262,13 +7297,17 @@
               }
             }
           }
-          if (needsApply) requestAnimationFrame(applyToAllBlocks);
+          if (needsApply) {
+            requestAnimationFrame(() => {
+              _moApplying = true;   // set guard BEFORE our style writes
+              mo.disconnect();      // stop watching while we apply gradients
+              applyToAllBlocks();
+              mo.observe(blocklyDiv, moOptions); // resume watching after
+              _moApplying = false;
+            });
+          }
         });
-        mo.observe(blocklyDiv, {
-          subtree: true,
-          attributes: true,
-          attributeFilter: ['style']
-        });
+        mo.observe(blocklyDiv, moOptions);
       }
     }
 
@@ -12232,19 +12271,38 @@
         Terminal: {
           _el: null, _paused: false, _count: 0,
           init() { this._el = document.getElementById('ltBody'); },
+          _ltQueue: [],
+          _ltRafPending: false,
+          _flushLtQueue() {
+            this._ltRafPending = false;
+            if (!this._el || this._ltQueue.length === 0) return;
+            if (this._count === 0) this._el.innerHTML = '';
+            const frag = document.createDocumentFragment();
+            while (this._ltQueue.length > 0) {
+              const item = this._ltQueue.shift();
+              this._count++;
+              const row = document.createElement('div');
+              row.className = 'lt-row lt-' + item.dir;
+              row.innerHTML = item.html;
+              frag.appendChild(row);
+            }
+            this._el.appendChild(frag);
+            // Trim in one pass
+            const el = this._el;
+            while (el.children.length > 200) el.removeChild(el.firstChild);
+            // One scroll measurement
+            if (el.scrollHeight - el.scrollTop < el.clientHeight + 60) el.scrollTop = el.scrollHeight;
+          },
           log(dir, cls, label, valHTML) {
             if (this._paused || !this._el) return;
-            if (this._count === 0) this._el.innerHTML = '';
-            this._count++;
             const ts = new Date().toLocaleTimeString('en', { hour12: false });
             const arrow = dir === 'out' ? '↑' : dir === 'in' ? '↓' : '·';
-            const row = document.createElement('div');
-            row.className = 'lt-row lt-' + dir;
-            row.innerHTML = '<span class="lt-ts">' + ts + '</span><span class="lt-dir">' + arrow + '</span><span class="lt-badge ' + cls + '">' + label + '</span><span class="lt-val">' + valHTML + '</span>';
-            this._el.appendChild(row);
-            const el = this._el;
-            if (el.scrollHeight - el.scrollTop < el.clientHeight + 60) el.scrollTop = el.scrollHeight;
-            while (el.children.length > 200) el.removeChild(el.firstChild);
+            const html = '<span class="lt-ts">' + ts + '</span><span class="lt-dir">' + arrow + '</span><span class="lt-badge ' + cls + '">' + label + '</span><span class="lt-val">' + valHTML + '</span>';
+            this._ltQueue.push({ dir, html });
+            if (!this._ltRafPending) {
+              this._ltRafPending = true;
+              requestAnimationFrame(() => this._flushLtQueue());
+            }
           },
           logCommand(p) {
             const t = p.type || '';
