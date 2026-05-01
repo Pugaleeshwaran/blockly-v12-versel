@@ -2891,7 +2891,7 @@
       background: #fff;
       border: 1.5px solid #cbd5e1;
       border-radius: 10px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
       padding: 4px;
       flex-direction: column;
       gap: 2px;
@@ -3908,6 +3908,8 @@
 
             { kind: 'block', type: 'ir_sen' },
             { kind: 'block', type: 'touch_sensor' },
+            { kind: 'block', type: 'peltier' },
+            { kind: 'block', type: 'microwave_sensor' },
           ]
         },
 
@@ -4000,7 +4002,9 @@
             { kind: 'block', type: 'finger_print_enroll' },
             { kind: 'block', type: 'finger_print_match' },
             { kind: 'block', type: 'keypad' },
-            { kind: 'block', type: 'mini_motor' },
+            { kind: 'block', type: 'gps' },
+            { kind: 'block', type: 'gsm' },
+            { kind: 'block', type: 'tof' },
             { kind: 'block', type: 'remote_motor' },
             { kind: 'block', type: 'water_motor' },
             { kind: 'block', type: 'tank_motor' },
@@ -7754,7 +7758,60 @@
           output: "Boolean",
           extensions: ["port_image_click", "servo_color"]
         },
-
+        {
+          type: "peltier",
+          message0: "Peltier %1 %2 %3",
+          args0: [
+            {
+              type: "field_image",
+              src: "./assets/img/Chips_Chips_Show.png",
+              width: 15,
+              height: 15,
+              alt: "",
+              name: "IMG"
+            },
+            {
+              type: "field_label",
+              name: "PORTS",
+              text: ""
+            },
+            {
+              type: "field_dropdown",
+              name: "STATE",
+              options: [
+                ["hot", "hot"],
+                ["cold", "cold"],
+                ["off", "off"]
+              ]
+            }
+          ],
+          colour: "#81d4ed",
+          previousStatement: null,
+          nextStatement: null,
+          extensions: ["port_image_click", "ultra_style"]
+        },
+        {
+          type: "microwave_sensor",
+          message0: "Microwave_sensor %1 %2",
+          args0: [
+            {
+              type: "field_image",
+              src: "./assets/img/Chips_Chips_Show.png",
+              width: 15,
+              height: 15,
+              alt: "",
+              name: "IMG"
+            },
+            {
+              type: "field_label",
+              name: "PORTS",
+              text: ""
+            }],
+          style: "control_blocks",
+          output: "Boolean",
+          extensions: ["temp_style", "port_image_click"]
+        }
+        ,
         { type: "ambient-sen", message0: "Ambient sensor pin", style: "control_blocks", output: "Boolean", extensions: ["temp_style"] },
         { type: "din_ultra", message0: "Ultra Sonic sensor pin %1 %2", args0: [{ type: "field_image", src: "./assets/img/Chips_Chips_Show.png", width: 15, height: 15, alt: "", name: "IMG" }, { type: "field_label", name: "PORTS", text: "" }], style: "control_blocks", output: "Boolean", extensions: ["led_pin_image_click", "temp_style"] },
         { type: "voltage_sensor", message0: "Voltage Sensor %1 %2", args0: [{ type: "field_image", src: "./assets/img/Chips_Chips_Show.png", width: 15, height: 15, alt: "", name: "IMG" }, { type: "field_label", name: "PORTS", text: "" }], style: "control_blocks", output: "Boolean", extensions: ["led_pin_image_click", "temp_style"] },
@@ -7794,6 +7851,39 @@
           previousStatement: null,
           nextStatement: null,
           extensions: ["temp_style", "key_pin_image_click"]
+        },
+        {
+          type: "gps",
+          message0: "GPS ",
+
+          style: "control_blocks",
+          output: "Boolean",
+          extensions: ["temp_style"]
+        },
+        {
+          type: "gsm",
+          message0: "GSM %1 %2",
+          args0: [
+            {
+              type: "field_input",
+              name: "VAL1",
+            },
+            {
+              type: "field_input",
+              name: "VAL2",
+            },],
+          colour: "#81d4ed",
+          previousStatement: null,
+          nextStatement: null,
+          extensions: ["port_image_click", "servo_color"]
+        },
+        {
+          type: "tof",
+          message0: "ToF",
+
+          style: "control_blocks",
+          output: "Boolean",
+          extensions: ["temp_style"]
         },
         {
           type: "compare",
@@ -8358,6 +8448,49 @@
         // If more than two ports are selected, return the first two only
         return [`await async_touch_sensor("${pins[0]}","${pins[1]}","${pins[2]}")`, py.ORDER_FUNCTION_CALL];
       };
+
+      reg['peltier'] = function (block) {
+        const ports = (block.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean);
+        const stateVal = block.getFieldValue('STATE');
+
+        if (ports.length === 0) {
+          return "# No pin selected\n";
+        }
+
+        if (ports.length === 1) {
+          return `await async_peltier("${ports[0]}","${stateVal}")\n`;
+        }
+        const portList = ports.map(p => `"${p}"`).join(', ');
+        return `await async_peltier(${portList},"${stateVal}")\n`;
+      };
+
+      reg['microwave_sensor'] = function (block) {
+        const portsTxt = block.getFieldValue('PORTS') || '';
+
+        // Split ports like "D3,H1"
+        const pins = portsTxt
+          .split(',')
+          .map(p => p.trim())
+          .filter(Boolean);
+
+        // If no ports are selected, show a warning message
+        if (!pins.length) {
+          return ['# Invalid: Please select at least one port', py.ORDER_NONE];
+        }
+
+        // If one port is selected, return code for that port only
+        if (pins.length === 1) {
+          return [`await async_microwave_sensor("${pins[0]}")`, py.ORDER_FUNCTION_CALL];
+        }
+
+        // If two ports are selected, use both for Trig and Echo
+        if (pins.length === 2) {
+          return [`await async_microwave_sensor("${pins[0]}","${pins[1]}")`, py.ORDER_FUNCTION_CALL];
+        }
+
+        // If more than two ports are selected, return the first two only
+        return [`await async_microwave_sensor("${pins[0]}","${pins[1]}","${pins[2]}")`, py.ORDER_FUNCTION_CALL];
+      };
       reg['sensor'] = b => { const ports = (b.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean); if (!ports.length) return "# no ports\n"; const fn = b.getFieldValue('STATE') === '1' ? 'sensor_on' : 'sensor_off'; return ports.map(p => `${fn}(${p})\n`).join(''); };
       reg['tem_sensor'] = b => { const ports = (b.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean); if (!ports.length) return "# no ports\n"; const fn = b.getFieldValue('STATE') === '1' ? 'tem_sensor_on' : 'tem_sensor_off'; return ports.map(p => `${fn}(${p})\n`).join(''); };
       reg['xray_sensor'] = b => { const ports = (b.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean); if (!ports.length) return "# no ports\n"; const fn = b.getFieldValue('STATE') === '1' ? 'xray_sensor_on' : 'xray_sensor_off'; return ports.map(p => `${fn}(${p})\n`).join(''); };
@@ -8419,6 +8552,15 @@
         const portList = ports.map(p => `"${p}"`).join(', ');
         return `await async_keypad(${portList})\n`;
       };
+      reg['gps'] = b => [`gps()`, py.ORDER_ATOMIC];
+
+      reg['gsm'] = function (block) {
+        const val1 = block.getFieldValue('VAL1');
+        const val2 = block.getFieldValue('VAL2');
+        // ALWAYS return a STRING
+        return `gsm("${val1}","${val2}")\n`;
+      };
+      reg['tof'] = b => [`tof()`, py.ORDER_ATOMIC];
       reg['compare'] = function (b) {
         var name = py.valueToCode(b, 'NAME', py.ORDER_NONE); // Correct way to get field value
         var name2 = py.valueToCode(b, 'NAME2', py.ORDER_NONE);
