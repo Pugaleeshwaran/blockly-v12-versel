@@ -8192,6 +8192,55 @@
 
 
     // =====================================================================
+    // BUTTON LOCK / MUTEX SYSTEM
+    // Only one operation (upload, play, stop, reset) can run at a time.
+    // All other buttons are disabled until the active operation finishes.
+    // =====================================================================
+    let _operationLock = false;
+
+    const LOCKABLE_BTN_IDS = ['upload', 'playmode', 'stop', 'soft_reset', 'hard_reset'];
+
+    function acquireOpLock(activeId) {
+      if (_operationLock) return false;
+      _operationLock = true;
+      LOCKABLE_BTN_IDS.forEach(id => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        btn.dataset._origOpacity = btn.style.opacity || '';
+        btn.dataset._origCursor  = btn.style.cursor  || '';
+        btn.disabled             = true;
+        btn.style.cursor         = 'not-allowed';
+        btn.style.opacity        = (id === activeId) ? '0.6' : '0.35';
+      });
+      return true;
+    }
+
+    function releaseOpLock() {
+      _operationLock = false;
+      LOCKABLE_BTN_IDS.forEach(id => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        btn.disabled      = false;
+        btn.style.opacity = btn.dataset._origOpacity || '';
+        btn.style.cursor  = btn.dataset._origCursor  || '';
+        delete btn.dataset._origOpacity;
+        delete btn.dataset._origCursor;
+      });
+    }
+
+    async function withOpLock(activeId, asyncFn) {
+      if (!acquireOpLock(activeId)) {
+        handleBoardMessage('⚠️ Another operation is in progress. Please wait.', 'SYS');
+        return;
+      }
+      try {
+        await asyncFn();
+      } finally {
+        releaseOpLock();
+      }
+    }
+
+    // =====================================================================
     // APP START
     // =====================================================================
 
@@ -11203,21 +11252,33 @@
       // ── Button Handlers ──
 
       // PLAY
-      document.getElementById("playmode").onclick = async () => { await sendUnifiedCommand("PLAY"); };
+      document.getElementById("playmode").onclick = async () => {
+        await withOpLock("playmode", async () => {
+          await sendUnifiedCommand("PLAY");
+        });
+      };
 
       // STOP
-      document.getElementById("stop").onclick = async () => { await sendUnifiedCommand("STOP"); };
+      document.getElementById("stop").onclick = async () => {
+        await withOpLock("stop", async () => {
+          await sendUnifiedCommand("STOP");
+        });
+      };
 
       // SOFT RESET
       document.getElementById("soft_reset").onclick = async () => {
-        const ok = await sendUnifiedCommand("SOFT_RESET");
-        if (ok) handleBoardMessage("Soft Reset triggered", "SYS");
+        await withOpLock("soft_reset", async () => {
+          const ok = await sendUnifiedCommand("SOFT_RESET");
+          if (ok) handleBoardMessage("Soft Reset triggered", "SYS");
+        });
       };
 
       // HARD RESET
       document.getElementById("hard_reset").onclick = async () => {
-        const ok = await sendUnifiedCommand("HARD_RESET");
-        if (ok) handleBoardMessage("Hardware Rebooting…", "SYS");
+        await withOpLock("hard_reset", async () => {
+          const ok = await sendUnifiedCommand("HARD_RESET");
+          if (ok) handleBoardMessage("Hardware Rebooting…", "SYS");
+        });
       };
 
       // BLUETOOTH button – open scan popup
@@ -11237,19 +11298,21 @@
 
       // UPLOAD button
       document.getElementById("upload").onclick = async () => {
-        const code = pyGen.workspaceToCode(workspace);
-        if (!code.trim()) { alert("Please drag some blocks first!"); return; }
-        const asyncCode = wrapWithAsyncio(code);
+        await withOpLock("upload", async () => {
+          const code = pyGen.workspaceToCode(workspace);
+          if (!code.trim()) { alert("Please drag some blocks first!"); return; }
+          const asyncCode = wrapWithAsyncio(code);
 
-        if (isMobileApp()) {
-          // Mobile: hand off to App.js via bridge
-          handleBoardMessage("Uploading via Bluetooth…", "SYS");
-          window.ReactNativeWebView.postMessage(JSON.stringify({ type: "SEND_DATA", data: asyncCode }));
-          return;
-        }
+          if (isMobileApp()) {
+            // Mobile: hand off to App.js via bridge
+            handleBoardMessage("Uploading via Bluetooth…", "SYS");
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: "SEND_DATA", data: asyncCode }));
+            return;
+          }
 
-        // Desktop: unified upload (USB or BLE)
-        await unifiedUploadCode(asyncCode);
+          // Desktop: unified upload (USB or BLE)
+          await unifiedUploadCode(asyncCode);
+        });
       };
 
       // BOOT (save user.py via USB)
