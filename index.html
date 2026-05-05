@@ -4060,6 +4060,7 @@
             { kind: 'block', type: 'logic_operation', fields: { OP: 'AND' } },
             { kind: 'block', type: 'logic_boolean', fields: { BOOL: 'TRUE' } },
             { kind: 'block', type: 'logical_comparison' },
+            { kind: 'block', type: 'arith_logical' },
             { kind: 'block', type: 'any_input_block' },
             { kind: 'block', type: 'custom_if_then' },
             { kind: 'block', type: 'system_status' },
@@ -7126,6 +7127,36 @@
         { type: "xray_sensor", message0: "xray sonic %1 %2 %3", args0: [{ type: "field_image", src: "./assets/img/Chips_Chips_Show.png", width: 15, height: 15, alt: "", name: "IMG" }, { type: "field_label", name: "PORTS", text: "" }, { type: "field_dropdown", name: "STATE", options: [["ON", "1"], ["OFF", "0"]] }], colour: "#81d4ed", previousStatement: null, nextStatement: null, extensions: ["port_image_click", "ultra_style"] },
         { type: "rc_sensor", message0: "rc sensor %1 %2 %3", args0: [{ type: "field_image", src: "./assets/img/Chips_Chips_Show.png", width: 15, height: 15, alt: "", name: "IMG" }, { type: "field_label", name: "PORTS", text: "" }, { type: "field_dropdown", name: "STATE", options: [["ON", "1"], ["OFF", "0"]] }], colour: "#81d4ed", previousStatement: null, nextStatement: null, extensions: ["port_image_click", "ultra_style"] },
         { type: "logical_comparison", message0: "%1 %2 %3", args0: [{ type: "input_value", name: "VALUE1" }, { type: "field_dropdown", name: "OPERATOR", options: [["<", "<"], [">", ">"], [" == ", "=="], [" >= ", ">="], [" <= ", "<="], [" != ", "!="]] }, { type: "input_value", name: "VALUE2" }], colour: "#4C97FF", output: "Boolean", inputsInline: true },
+        {
+          type: "logical_comparison",
+          message0: "%1 %2 %3",
+          args0: [
+            { type: "input_value", name: "VALUE1" },
+            {
+              type: "field_dropdown",
+              name: "OPERATOR",
+              options: [["<", "<"], [">", ">"], [" == ", "=="], [" >= ", ">="], [" <= ", "<="], [" != ", "!="]]
+            },
+            { type: "input_value", name: "VALUE2" }],
+          colour: "#4C97FF",
+          output: "Boolean",
+          inputsInline: true
+        },
+                {
+          type: "arith_logical",
+          message0: "%1 %2 %3",
+          args0: [
+            { type: "input_value", name: "VALUE1" },
+            {
+              type: "field_dropdown",
+              name: "OPERATOR",
+              options: [["+", "+"], ["-", "-"], ["*", "*"], ["/", "/"], ["%", "%"], [" != ", "!="]]
+            },
+            { type: "input_value", name: "VALUE2" }],
+          colour: "#4C97FF",
+          output: "Boolean",
+          inputsInline: true
+        },
         { type: "red_led", message0: "Red LED %1 %2 %3 %4", args0: [{ type: "field_image", src: "./assets/img/Chips_Chips_Show.png", width: 15, height: 15, alt: "", name: "IMG" }, { type: "field_label", name: "PORTS", text: "" }, { type: "field_number", name: "VAL1", value: 1, min: 0, max: 100, precision: 1 }, { type: "field_number", name: "VAL2", value: 1, min: 0, max: 100, precision: 1 }], colour: "#81d4ed", previousStatement: null, nextStatement: null, extensions: ["led_pin_image_click", "dummy_style"] },
         { type: "yellow_led", message0: "YELLOW LED %1 %2 %3 %4", args0: [{ type: "field_image", src: "./assets/img/Chips_Chips_Show.png", width: 15, height: 15, alt: "", name: "IMG" }, { type: "field_label", name: "PORTS", text: "" }, { type: "field_number", name: "VAL1", value: 1, min: 0, max: 100, precision: 1 }, { type: "field_number", name: "VAL2", value: 1, min: 0, max: 100, precision: 1 }], colour: "#81d4ed", previousStatement: null, nextStatement: null, extensions: ["led_pin_image_click", "dummy_style"] },
         { type: "green_led", message0: "GREEN LED %1 %2 %3 %4", args0: [{ type: "field_image", src: "./assets/img/Chips_Chips_Show.png", width: 15, height: 15, alt: "", name: "IMG" }, { type: "field_label", name: "PORTS", text: "" }, { type: "field_number", name: "VAL1", value: 1, min: 0, max: 100, precision: 1 }, { type: "field_number", name: "VAL2", value: 1, min: 0, max: 100, precision: 1 }], colour: "#81d4ed", previousStatement: null, nextStatement: null, extensions: ["led_pin_image_click", "dummy_style"] },
@@ -7673,18 +7704,18 @@
       };
       reg['lp_label'] = b => { const name = py.valueToCode(b, 'NAME', py.ORDER_NONE); return `print(${name || ''})\n`; };
 
-      reg['controls_flow_statements'] = function(block) {
+      reg['controls_flow_statements'] = function (block) {
         var keyword = block.getFieldValue('FLOW') == 'BREAK' ? 'break\n' : 'continue\n';
         return keyword;
       };
 
-      reg['controls_repeat_ext'] = function(block) {
+      reg['controls_repeat_ext'] = function (block) {
         var repeats = py.valueToCode(block, 'TIMES', py.ORDER_NONE) || '0';
         var branch = py.statementToCode(block, 'DO') || '  pass\n';
         return 'for _ in range(' + repeats + '):\n  await asyncio.sleep(0)\n' + branch;
       };
 
-      reg['controls_whileUntil'] = function(block) {
+      reg['controls_whileUntil'] = function (block) {
         var until = block.getFieldValue('MODE') == 'UNTIL';
         var argument0 = py.valueToCode(block, 'BOOL', until ? py.ORDER_LOGICAL_NOT : py.ORDER_NONE) || 'False';
         var branch = py.statementToCode(block, 'DO') || '  pass\n';
@@ -7694,7 +7725,7 @@
         return 'while ' + argument0 + ':\n  await asyncio.sleep(0)\n' + branch;
       };
 
-      reg['controls_for'] = function(block) {
+      reg['controls_for'] = function (block) {
         var variable0 = py.nameDB_ ? py.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE) : block.getFieldValue('VAR');
         var argument0 = py.valueToCode(block, 'FROM', py.ORDER_NONE) || '0';
         var argument1 = py.valueToCode(block, 'TO', py.ORDER_NONE) || '0';
@@ -7703,7 +7734,7 @@
         return 'for ' + variable0 + ' in range(' + argument0 + ', ' + argument1 + ' + 1, ' + step + '):\n  await asyncio.sleep(0)\n' + branch;
       };
 
-      reg['controls_forEach'] = function(block) {
+      reg['controls_forEach'] = function (block) {
         var variable0 = py.nameDB_ ? py.nameDB_.getName(block.getFieldValue('VAR'), Blockly.Names.NameType.VARIABLE) : block.getFieldValue('VAR');
         var argument0 = py.valueToCode(block, 'LIST', py.ORDER_NONE) || '[]';
         var branch = py.statementToCode(block, 'DO') || '  pass\n';
@@ -7835,6 +7866,7 @@
 
       reg['do_led_param'] = b => { const pins = (b.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean); const v1 = b.getFieldValue('VAL') || 0; const v2 = b.getFieldValue('VAL2') || 0; if (!pins.length) return "# do_led_param: no pins\n"; return pins.map(p => `led_blink('${p}',${v1},${v2})\n`).join(''); };
       reg['logical_comparison'] = b => { const v1 = py.valueToCode(b, 'VALUE1', py.ORDER_NONE); const op = b.getFieldValue('OPERATOR'); const v2 = py.valueToCode(b, 'VALUE2', py.ORDER_NONE); return [`${v1} ${op} ${v2}`, py.ORDER_RELATIONAL]; };
+      reg['arith_logical'] = b => { const v1 = py.valueToCode(b, 'VALUE1', py.ORDER_NONE); const op = b.getFieldValue('OPERATOR'); const v2 = py.valueToCode(b, 'VALUE2', py.ORDER_NONE); return [`${v1} ${op} ${v2}`, py.ORDER_RELATIONAL]; };
       reg['red_led'] = b => { const pins = (b.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean); const v1 = b.getFieldValue('VAL1'); const v2 = b.getFieldValue('VAL2'); if (!pins.length) return "# red_blink: no pins\n"; return pins.map(p => `await async_red_blink("${p}",${v1},${v2})\n`).join(''); };
       reg['yellow_led'] = b => { const pins = (b.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean); const v1 = b.getFieldValue('VAL1'); const v2 = b.getFieldValue('VAL2'); if (!pins.length) return "# yellow_blink: no pins\n"; return pins.map(p => `await async_yellow_blink("${p}",${v1},${v2})\n`).join(''); };
       reg['green_led'] = b => { const pins = (b.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean); const v1 = b.getFieldValue('VAL1'); const v2 = b.getFieldValue('VAL2'); if (!pins.length) return "# green_blink: no pins\n"; return pins.map(p => `await async_green_blink("${p}",${v1},${v2})\n`).join(''); };
@@ -8123,7 +8155,7 @@
       // Wrap default procedure blocks to be async
       const orig_defnoreturn = py.forBlock && py.forBlock['procedures_defnoreturn'] || py['procedures_defnoreturn'];
       if (orig_defnoreturn) {
-        reg['procedures_defnoreturn'] = function(block, generator) {
+        reg['procedures_defnoreturn'] = function (block, generator) {
           let code = orig_defnoreturn.call(this, block, generator);
           if (typeof code === 'string') return code.replace(/\bdef\s+/, 'async def ');
           return code;
@@ -8131,7 +8163,7 @@
       }
       const orig_defreturn = py.forBlock && py.forBlock['procedures_defreturn'] || py['procedures_defreturn'];
       if (orig_defreturn) {
-        reg['procedures_defreturn'] = function(block, generator) {
+        reg['procedures_defreturn'] = function (block, generator) {
           let code = orig_defreturn.call(this, block, generator);
           if (typeof code === 'string') return code.replace(/\bdef\s+/, 'async def ');
           return code;
@@ -8139,7 +8171,7 @@
       }
       const orig_callnoreturn = py.forBlock && py.forBlock['procedures_callnoreturn'] || py['procedures_callnoreturn'];
       if (orig_callnoreturn) {
-        reg['procedures_callnoreturn'] = function(block, generator) {
+        reg['procedures_callnoreturn'] = function (block, generator) {
           let code = orig_callnoreturn.call(this, block, generator);
           if (typeof code === 'string') return 'await ' + code;
           return code;
@@ -8147,7 +8179,7 @@
       }
       const orig_callreturn = py.forBlock && py.forBlock['procedures_callreturn'] || py['procedures_callreturn'];
       if (orig_callreturn) {
-        reg['procedures_callreturn'] = function(block, generator) {
+        reg['procedures_callreturn'] = function (block, generator) {
           let code = orig_callreturn.call(this, block, generator);
           if (Array.isArray(code) && typeof code[0] === 'string') {
             return ['await ' + code[0], code[1]];
