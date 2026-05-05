@@ -3905,11 +3905,12 @@
             { kind: 'block', type: 'buzzer' },
             { kind: 'block', type: 'minifan' },
             { kind: 'block', type: 'buzzer_component' },
-
+            { kind: 'block', type: 'touch_sensor' },
             { kind: 'block', type: 'ir_sen' },
             { kind: 'block', type: 'touch_sensor' },
             { kind: 'block', type: 'peltier' },
             { kind: 'block', type: 'microwave_sensor' },
+            { kind: 'block', type: 'din_flame' },
           ]
         },
 
@@ -3932,7 +3933,7 @@
             { kind: 'block', type: 'Air_quality_sensor' },
             { kind: 'block', type: 'flexi_force_sensor' },
             { kind: 'block', type: 'TDS_Water_sensor' },
-            { kind: 'block', type: 'din_flame' },
+
             { kind: 'block', type: 'din_temp' },
             { kind: 'block', type: 'water_sensor' },
             { kind: 'block', type: 'din_ultra' },
@@ -3955,7 +3956,7 @@
             { kind: 'block', type: 'LCD' },
             { kind: 'block', type: 'pressure' },
             { kind: 'block', type: 'compass' },
-            { kind: 'block', type: 'ceprom' },
+            { kind: 'block', type: 'eeprom' },
             { kind: 'block', type: 'gusture' },
             { kind: 'block', type: 'ir_temp' },
             { kind: 'block', type: 'motor_driver' },
@@ -3963,7 +3964,7 @@
             { kind: 'block', type: 'mag_encoder' },
             { kind: 'block', type: 'rfc' },
             { kind: 'block', type: 'text_speech' },
-            { kind: 'block', type: 'touch_sensor' },
+
             { kind: 'block', type: 'uv_sensor' },
             { kind: 'block', type: 'temp_sensor' },
             { kind: 'block', type: 'accelerometer' },
@@ -6433,7 +6434,7 @@
       // tempshadow — temp_style (sensors)
       accelerometer: 'tempshadow', accelerometer_sensor: 'tempshadow',
       'ambient-sen': 'tempshadow', ana_temp: 'tempshadow',
-      ceprom: 'tempshadow', colour_sen: 'tempshadow', compass: 'tempshadow',
+      eeprom: 'tempshadow', colour_sen: 'tempshadow', compass: 'tempshadow',
       'Current-sensor': 'tempshadow',
       din_button: 'tempshadow', din_door: 'tempshadow', din_flame: 'tempshadow',
       din_if_else: 'tempshadow', din_ir: 'tempshadow', din_motion: 'tempshadow',
@@ -6510,7 +6511,7 @@
       // temp_style (purple gradient) — sensors / I2C / digital inputs
       accelerometer: 'temp_style', accelerometer_sensor: 'temp_style',
       'ambient-sen': 'temp_style', ana_temp: 'temp_style',
-      ceprom: 'temp_style', colour_sen: 'temp_style', compass: 'temp_style',
+      eeprom: 'temp_style', colour_sen: 'temp_style', compass: 'temp_style',
       'Current-sensor': 'temp_style',
       din_button: 'temp_style', din_door: 'temp_style', din_flame: 'temp_style',
       din_if_else: 'temp_style', din_ir: 'temp_style', din_motion: 'temp_style',
@@ -7142,7 +7143,7 @@
           output: "Boolean",
           inputsInline: true
         },
-                {
+        {
           type: "arith_logical",
           message0: "%1 %2 %3",
           args0: [
@@ -7237,7 +7238,7 @@
         { type: "LCD", message0: "LCD pin", style: "control_blocks", output: "Boolean", extensions: ["temp_style"] },
         { type: "pressure", message0: "Pressure pin", style: "control_blocks", output: "Boolean", extensions: ["temp_style"] },
         { type: "compass", message0: "compass", style: "control_blocks", output: "Boolean", extensions: ["temp_style"] },
-        { type: "ceprom", message0: "ceprom", style: "control_blocks", output: "Boolean", extensions: ["temp_style"] },
+        { type: "eeprom", message0: "eeprom", style: "control_blocks", output: "Boolean", extensions: ["temp_style"] },
         { type: "gusture", message0: "Gesture", style: "control_blocks", output: "Boolean", extensions: ["temp_style"] },
         { type: "ir_temp", message0: "IR temp", style: "control_blocks", output: "Boolean", extensions: ["temp_style"] },
         { type: "motor_driver", message0: "Motor Driver", style: "control_blocks", output: "Boolean", extensions: ["temp_style"] },
@@ -8076,7 +8077,7 @@
       reg['loop_end'] = b => `${b.getFieldValue('NAME') || ''}\n`;
       reg['rgb_display'] = b => `displayRGBColors(${b.getFieldValue('RED')},${b.getFieldValue('ORANGE')},${b.getFieldValue('YELLOW')},${b.getFieldValue('GREEN')},${b.getFieldValue('CYAN')});\n`;
       reg['rgb_component'] = b => { const ports = (b.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean); const freq = b.getFieldValue('freq'); const d1 = b.getFieldValue('Delay1'); const d2 = b.getFieldValue('DELAY2'); if (!ports.length) return "# rgb_component: no ports\n"; return ports.map(p => `rgb("${p}",${freq},${d1},${d2})\n`).join(''); };
-      reg['buzzer_component'] = b => { const ports = (b.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean); const freq = b.getFieldValue('freq'); const d1 = b.getFieldValue('Delay1'); const d2 = b.getFieldValue('DELAY2'); if (!ports.length) return "# buzzer_component: no ports\n"; return ports.map(p => `buzzer("${p}",${freq},${d1},${d2})\n`).join(''); };
+      reg['buzzer_component'] = b => { const ports = (b.getFieldValue('PORTS') || '').split(',').map(s => s.trim()).filter(Boolean); const freq = b.getFieldValue('freq'); const d1 = b.getFieldValue('Delay1'); const d2 = b.getFieldValue('DELAY2'); if (!ports.length) return "# buzzer_component: no ports\n"; return ports.map(p => `await async_buzzer("${p}",${freq},${d1},${d2})\n`).join(''); };
       reg['LCD_print'] = b => { const txt = py.valueToCode(b, 'TEXT', py.ORDER_NONE) || ""; return `await async_lcd(${txt})\n`; };
       reg['din_flame'] = b => { const port = b.getFieldValue('PORTS'); return [`await async_flame("${port}")`, py.ORDER_FUNCTION_CALL]; };
       reg['din_temp'] = b => { const port = b.getFieldValue('PORTS'); return [`await async_temp("${port}")`, py.ORDER_FUNCTION_CALL]; };
@@ -8088,7 +8089,7 @@
       reg['LCD'] = () => [`await async_lcd()`, py.ORDER_ATOMIC];
       reg['pressure'] = () => [`await async_pressure()`, py.ORDER_ATOMIC];
       reg['compass'] = () => [`await async_compass()`, py.ORDER_ATOMIC];
-      reg['ceprom'] = () => [`await async_eeprom()`, py.ORDER_ATOMIC];
+      reg['eeprom'] = () => [`await async_eeprom()`, py.ORDER_ATOMIC];
       reg['gusture'] = () => [`await async_gesture()`, py.ORDER_ATOMIC];
       reg['ir_temp'] = () => [`await async_ir_temp()`, py.ORDER_ATOMIC];
       reg['motor_driver'] = () => [`await async_motor_driver()`, py.ORDER_ATOMIC];
@@ -8119,15 +8120,15 @@
         const portList = ports.map(p => `"${p}"`).join(', ');
         return `await async_keypad(${portList})\n`;
       };
-      reg['gps'] = b => [`gps()`, py.ORDER_ATOMIC];
+      reg['gps'] = b => [`await async_gps()`, py.ORDER_ATOMIC];
 
       reg['gsm'] = function (block) {
         const val1 = block.getFieldValue('VAL1');
         const val2 = block.getFieldValue('VAL2');
         // ALWAYS return a STRING
-        return `gsm("${val1}","${val2}")\n`;
+        return `await async_gsm("${val1}",${val2})\n`;
       };
-      reg['tof'] = b => [`tof()`, py.ORDER_ATOMIC];
+      reg['tof'] = b => [`await async_tof()`, py.ORDER_ATOMIC];
       reg['compare'] = function (b) {
         var name = py.valueToCode(b, 'NAME', py.ORDER_NONE); // Correct way to get field value
         var name2 = py.valueToCode(b, 'NAME2', py.ORDER_NONE);
