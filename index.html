@@ -5070,8 +5070,27 @@
           try { stm32Writer.releaseLock(); } catch (e) { console.log(e); }
         }
         stm32Writer = stm32Port.writable.getWriter();
+
+        // Start listening FIRST so we can receive the board's PING reply
         listenForData();
-        handleBoardMessage("USB Connected ✅", "SYS");
+
+        // Give the serial port 200 ms to stabilise before writing
+        await new Promise(r => setTimeout(r, 200));
+
+        // Send PING — board replies with "SYSTEM READY: ..." which
+        // listenForData() picks up and routes to handleBoardMessage.
+        // This works even when the board was NOT power-cycled.
+        try {
+          await stm32Writer.write(stm32Encoder.encode("PING\n"));
+        } catch (pingErr) {
+          console.warn("PING send failed:", pingErr);
+        }
+
+        // Show a temporary status while we wait for the board ack.
+        // The real "USB Connected ✅" is shown by handleBoardMessage below
+        // when it detects the board's "SYSTEM READY" reply.
+        handleBoardMessage("USB port opened — waiting for board…", "SYS");
+
       } catch (e) {
         console.error("Failed to open port", e);
         alert("USB Connection failed: " + e.message);
@@ -5526,6 +5545,14 @@
     function handleBoardMessage(msg, source) {
       if (!msg || msg === '-') return;   // skip legacy clear-placeholder
       console.log("Board [" + (source || 'SYS') + "]:", msg);
+
+      // ── SYSTEM READY → show "USB Connected ✅" ───────────────────────────
+      // The board sends this banner both on first boot AND in response to a
+      // PING command (sent every time connectStm32() opens the port).
+      // This means the confirmation is always backend-driven, never faked.
+      if (source === 'USB' && msg.includes('SYSTEM READY')) {
+        handleBoardMessage("USB Connected ✅", "SYS");
+      }
 
       if (typeof checkAck === 'function') checkAck(msg);
 
